@@ -1,15 +1,44 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @map("guid")
+  logDT      DateTime @map("LogDT")
+  logMessage String   @map("log_message")
+  actionType Int      @map("action_type")
+  account    String
+
+  @@map("audit_log")
+}
+
+model Event {
+  id          String   @id @default(uuid()) @map("Id")
+  title       String   @map("event_title")
+  subtitle    String?  @map("event_subtitle")
+  description String   @map("event_description")
+  date        DateTime @map("event_date")
+  location    String   @map("event_location")
+  capacity    Int      @map("event_cap")
+  price       Int      @map("event_price")
+  sponsor     String   @map("event_sponsor")
+  bannerImage String   @map("event_banner")
+  thumbImage  String   @map("event_thumb")
+  sponsorLogo String   @map("event_spon_logo")
+  publishDate DateTime @map("event_pub_DT")
+
+  @@map("events")
+}
+
+model MailingList {
+  id           String   @id @default(uuid()) @map("Id")
+  registerTime DateTime @map("register_time")
+  email        String
+
+  @@map("mailing_list")
 }
