@@ -1,39 +1,45 @@
-import { PrismaClient } from '@prisma/client';
-import { BaseRepository } from './base.repository';
+
+import { prisma } from '../db/client';
+import { BaseRepositoryImpl } from './base.repository';
 import { Event } from '../../types/event';
+import { mapPrismaModel } from '../../types/prisma-utils';
 
-const prisma = new PrismaClient();
+export class EventRepository extends BaseRepositoryImpl<Event> {
+  constructor(prisma: prisma) {
+    super(prisma);
+  }
 
-
-export class EventRepository implements BaseRepository<Event> {
-  // Your repository methods...
   async findAll(filter?: Partial<Event>): Promise<Event[]> {
-    return prisma.event.findMany({
+    const events = await this.prisma.event.findMany({
       where: filter as any
     });
+    return events.map((event: Event) => mapPrismaModel<Event>(event));
   }
 
   async findById(id: string): Promise<Event | null> {
-    return prisma.event.findUnique({
+    const event = await this.prisma.event.findUnique({
       where: { id }
     });
+    return event ? mapPrismaModel<Event>(event as Event) : null;
   }
 
   async create(data: Omit<Event, 'id'>): Promise<Event> {
-    return prisma.event.create({
+    const event = await this.prisma.event.create({
       data: data as any
     });
+    return mapPrismaModel<Event>(event as Event);
   }
 
   async update(id: string, data: Partial<Omit<Event, 'id'>>): Promise<Event | null> {
-    return prisma.event.update({
+    const event = await this.prisma.event.update({
       where: { id },
       data: data as any
     });
+    return mapPrismaModel<Event>(event as Event);
   }
 
   async delete(id: string): Promise<boolean> {
-    await prisma.event.delete({
+    await this.prisma.event.delete({
       where: { id }
     });
     return true;

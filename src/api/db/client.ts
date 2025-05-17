@@ -1,17 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv'
 
-// Singleton for DB Connection
+//  DB Singleton
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-const envLocal = dotenv.config({ path: '.env.local' })
-
-console.log(envLocal);
+//  Dev env
+dotenv.config({ path: '.env.local' });
 
 export const prisma = globalForPrisma.prisma || new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
 });
 
+//  Base DB Logging
 prisma.$use(async (params, next) => {
   try {
     return await next(params);
@@ -21,5 +21,5 @@ prisma.$use(async (params, next) => {
   }
 });
 
-// Dev Mode => Keep Alive Between Reloads
+//  Keep Alive For Dev
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

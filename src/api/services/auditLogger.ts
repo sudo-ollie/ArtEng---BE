@@ -3,19 +3,16 @@ import { AuditLog } from "../../types/typesRepo"
 import { AuditLevel } from "../../enums/enumsRepo"
 
 export class AuditLoggerService {
-  private prisma: PrismaClient;
   private isEnabled: boolean;
   
-  constructor(prismaClient?: PrismaClient) {
+  constructor(private readonly prisma: PrismaClient) {
     if (!process.env.DATABASE_URL) {
       console.warn('WARNING: DATABASE_URL environment variable is not defined. Audit logging will be disabled.');
       this.isEnabled = false;
     } else {
-        console.log("Logger Active")
+      console.log("Logger Active")
       this.isEnabled = true;
     }
-    
-    this.prisma = prismaClient || new PrismaClient();
   }
   
   /**
@@ -25,7 +22,6 @@ export class AuditLoggerService {
    * @param account User or system account that performed the action
    * @returns Promise with the created audit log entry or null if logging is disabled
    */
-
   async auditLog(
     logMessage: string, 
     actionType: AuditLevel, 
@@ -38,7 +34,6 @@ export class AuditLoggerService {
     }
     
     try {
-        console.log("Inside Logger")
       const auditLog = await this.prisma.auditLog.create({
         data: {
           logDT: new Date(),
@@ -83,10 +78,5 @@ export class AuditLoggerService {
       console.error('Error retrieving audit logs:', error);
       return [];
     }
-  }
-  
-  //    Final Clean Up
-  async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
   }
 }

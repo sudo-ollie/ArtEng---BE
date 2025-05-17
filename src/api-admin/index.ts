@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { AuditLevel } from "../enums/enumsRepo"
+import { AuditLevel } from "../enums/enumsRepo";
 import { auditLogger } from "../api/services";
 
 export function setupAdminApi() {
@@ -7,14 +7,13 @@ export function setupAdminApi() {
 
   //    Test Endpoint
   router.get("/", (req, res) => {
-        auditLogger.auditLog("AuditLog Test",AuditLevel.System, "ArtEng-Dev")
+    auditLogger.auditLog("AuditLog Test", AuditLevel.System, "ArtEng-Dev");
     res.json({
       name: "ArtEng Admin API",
       version: "1.0.0",
       status: "online",
     });
   });
-
 
   //    Dev Debugging
   router.use((req, res, next) => {

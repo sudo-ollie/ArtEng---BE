@@ -1,31 +1,11 @@
+import { container } from './container';
 import { AuditLoggerService } from './auditLogger';
 
-// Create and export services
-export const auditLogger = new AuditLoggerService();
+//  Export specific services as convenience methods
+export const auditLogger: AuditLoggerService = container.get('auditLogger');
 
-// Create and export service types
+//  Re-export container
+export { container };
+
+//  Re-export service types
 export type { AuditLoggerService } from './auditLogger';
-
-
-class ServiceContainer {
-  private services = new Map<string, any>();
-  
-  constructor() {
-    // Register all services
-    this.register('auditLog', auditLogger);
-
-  }
-
-  register<T>(name: string, instance: T): void {
-    this.services.set(name, instance);
-  }
-
-  get<T>(name: string): T {
-    if (!this.services.has(name)) {
-      throw new Error(`Service ${name} not registered`);
-    }
-    return this.services.get(name) as T;
-  }
-}
-
-export const container = new ServiceContainer();
