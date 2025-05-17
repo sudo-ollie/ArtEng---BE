@@ -1,11 +1,13 @@
-import { container } from './container';
+import { PrismaClient } from '@prisma/client';
 import { AuditLoggerService } from './auditLogger';
+import { EventRepository } from '../repositories/event.repository';
 
-//  Export specific services as convenience methods
-export const auditLogger: AuditLoggerService = container.get('auditLogger');
+// Initialize Prisma client
+const prisma = new PrismaClient();
 
-//  Re-export container
-export { container };
+// Create and export services with the shared Prisma instance
+export const auditLogger = new AuditLoggerService(prisma);
+export const eventRepository = new EventRepository(prisma);
 
-//  Re-export service types
+// Create and export service types
 export type { AuditLoggerService } from './auditLogger';
