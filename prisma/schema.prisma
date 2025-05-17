@@ -31,6 +31,7 @@ model Event {
   thumbImage  String   @map("event_thumb")
   sponsorLogo String   @map("event_spon_logo")
   publishDate DateTime @map("event_pub_DT")
+  eventActive Boolean  @map("event_active")
 
   @@map("events")
 }

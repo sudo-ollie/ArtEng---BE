@@ -3,6 +3,7 @@
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import { startServer } from './server';
+import { AuditLoggerService } from './api/services/auditLogger';
 
 //#endregion
 
@@ -11,6 +12,8 @@ if (fs.existsSync('.env.local')) {
   dotenv.config({ path: '.env.local' });
 }
 dotenv.config();
+
+const auditLog = new AuditLoggerService()
 
 // Start the server
 startServer().catch(error => {

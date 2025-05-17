@@ -1,13 +1,14 @@
-import { AuditLog } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { prisma } from '../db/client';
+import { AuditLog } from '../../types/auditlog';
+
+const prisma = new PrismaClient();
 
 export class AuditLogRepository implements BaseRepository<AuditLog> {
-
   //    Get All Logs
   async findAll(filter?: Partial<AuditLog>): Promise<AuditLog[]> {
     return prisma.auditLog.findMany({
-      where: filter
+      where: filter as any
     });
   }
 
@@ -21,7 +22,7 @@ export class AuditLogRepository implements BaseRepository<AuditLog> {
   //    Create Audit Log
   async create(data: Omit<AuditLog, 'id'>): Promise<AuditLog> {
     return prisma.auditLog.create({
-      data
+      data: data as any
     });
   }
 
@@ -29,7 +30,7 @@ export class AuditLogRepository implements BaseRepository<AuditLog> {
   async update(id: string, data: Partial<Omit<AuditLog, 'id'>>): Promise<AuditLog | null> {
     return prisma.auditLog.update({
       where: { id },
-      data
+      data: data as any
     });
   }
 

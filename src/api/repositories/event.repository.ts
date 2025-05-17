@@ -1,39 +1,37 @@
-import { Event } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { prisma } from '../db/client';
+import { Event } from '../../types/event';
+
+const prisma = new PrismaClient();
+
 
 export class EventRepository implements BaseRepository<Event> {
-
-  //    Get All Events
+  // Your repository methods...
   async findAll(filter?: Partial<Event>): Promise<Event[]> {
     return prisma.event.findMany({
-      where: filter
+      where: filter as any
     });
   }
 
-  //    Get Event By Id
   async findById(id: string): Promise<Event | null> {
     return prisma.event.findUnique({
       where: { id }
     });
   }
 
-  //    Create Event
   async create(data: Omit<Event, 'id'>): Promise<Event> {
     return prisma.event.create({
-      data
+      data: data as any
     });
   }
 
-  //    Edit Event
   async update(id: string, data: Partial<Omit<Event, 'id'>>): Promise<Event | null> {
     return prisma.event.update({
       where: { id },
-      data
+      data: data as any
     });
   }
 
-  //    Delete Event
   async delete(id: string): Promise<boolean> {
     await prisma.event.delete({
       where: { id }

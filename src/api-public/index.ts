@@ -1,9 +1,8 @@
 import { Router } from 'express';
 
-
 export function setupPublicApi() {
   const router = Router();
-  
+
   //    Test Endpoint
   router.get('/', (req, res) => {
     res.json({
@@ -12,7 +11,18 @@ export function setupPublicApi() {
       status: 'online'
     });
   });
-  
+
+  //    Dev Debugging
+  router.use((req, res, next) => {
+    console.log("API-PUBLIC DEBUGGING:", {
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      path: req.path,
+      url: req.url,
+    });
+    next();
+  });
+
   //    Mount Endpoints Here
   
   return router;
