@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { EmailListController } from "../api/controllers/emailList.controller";
+import { EventController } from './controllers/event.controller';
 
 export function setupPublicApi() {
   const router = Router();
@@ -23,7 +25,15 @@ export function setupPublicApi() {
     next();
   });
 
-  //    Mount Endpoints Here
+  //    Endpoints
+  
+  //    Email list endpoints
+  router.post('/mailing-list/join', EmailListController.joinMailingList);
+  router.post('/mailing-list/leave', EmailListController.leaveMailingList);
+  
+  //    Event endpoints
+  router.get('/events', EventController.getAllEvents);
+  router.get('/events/:id', EventController.getEventById);
   
   return router;
 }

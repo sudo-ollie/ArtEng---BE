@@ -1,26 +1,27 @@
+// services/container.ts
 import { PrismaClient } from '@prisma/client';
 import { AuditLoggerService } from './auditLogger';
-import { EventRepository } from '../repositories/event.repository';
+import { EventService } from '../repositories/event.repository';
+import { EmailListService } from './emailList';
+import { AuditLogService } from '../repositories/audit-log.repository';
 
 class ServiceContainer {
-  private services = new Map<string, any>();
+  private prisma: PrismaClient;
+  public auditLogger: AuditLoggerService;
+  public eventService: EventService;
+  public mailingList: EmailListService;
+  public auditLogService: AuditLogService;
   
   constructor() {
-    // Register all services
-    this.register('auditLogger', AuditLoggerService);
-    this.register('eventRepository', EventRepository);
-  }
-
-  register<T>(name: string, instance: T): void {
-    this.services.set(name, instance);
-  }
-
-  get<T>(name: string): T {
-    if (!this.services.has(name)) {
-      throw new Error(`Service ${name} not registered`);
-    }
-    return this.services.get(name) as T;
+    //  Prisma
+    this.prisma = new PrismaClient();
+    
+    //  Services
+    this.auditLogger = new AuditLoggerService(this.prisma);
+    this.eventService = new EventService(this.prisma);
+    this.mailingList = new EmailListService(this.prisma);
+    this.auditLogService = new AuditLogService(this.prisma);
   }
 }
 
-export const container = new ServiceContainer();
+export const services = new ServiceContainer();

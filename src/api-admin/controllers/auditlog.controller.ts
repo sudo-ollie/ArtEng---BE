@@ -1,20 +1,20 @@
 import { Request, Response } from 'express';
 import { AuditLevel } from "../../enums/enumsRepo";
-import { container } from "../../api/services/container";
-import { auditLogger } from '../../api/services';
+import { services } from '../../api/services/container';
 
 export const AuditLogController = {
   //  Get All Logs
   getAllLogs: async (req: Request, res: Response) => {
     try {
-      const auditLogRepository = container.get('auditLogRepository');
+      const logs = await services.auditLogService.getAllLogs();
       
-      const logs = await auditLogRepository.findAll();
-      return res.json(logs);
-      
+      return res.status(200).json({
+        success: true,
+        data: logs
+      });
     } catch (error) {
       console.log(`Audit Log Service | GetAllLogs - Error ${error}`);
-      auditLogger.auditLog(
+      services.auditLogger.auditLog(
         "ERROR - GetAllLogs - AuditLog Service",
         AuditLevel.Error,
         "SYSTEM"
@@ -30,13 +30,23 @@ export const AuditLogController = {
   getLogsByUser: async (req: Request, res: Response) => {
     try {
       const { userId } = req.params;
-      const auditLogRepository = container.get('auditLogRepository');
       
-      const logs = await auditLogRepository.findAll({ account: userId } as any);
-      return res.json(logs);
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required'
+        });
+      }
+      
+      const logs = await services.auditLogService.getLogById(userId);
+      
+      return res.status(200).json({
+        success: true,
+        data: logs
+      });
     } catch (error) {
       console.log(`Audit Log Service | GetLogsByUser - Error ${error}`);
-      auditLogger.auditLog(
+      services.auditLogger.auditLog(
         "ERROR - GetLogsByUser - AuditLog Service",
         AuditLevel.Error,
         "SYSTEM"

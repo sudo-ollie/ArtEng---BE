@@ -1,4 +1,3 @@
-// src/server.ts
 import express from 'express';
 import { setupPublicApi } from './api-public';
 import { setupAdminApi } from './api-admin';

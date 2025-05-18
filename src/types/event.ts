@@ -1,7 +1,7 @@
 export interface Event {
   id: string;
   title: string;
-  subtitle: string | null;
+  subtitle?: string | null;
   description: string;
   date: Date;
   location: string;
@@ -13,4 +13,6 @@ export interface Event {
   sponsorLogo: string;
   publishDate: Date;
   eventActive: boolean;
+  eventPrivate: boolean;
+  eventLocked: boolean;
 }
