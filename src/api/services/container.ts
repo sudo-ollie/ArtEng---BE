@@ -1,9 +1,9 @@
 // services/container.ts
 import { PrismaClient } from '@prisma/client';
 import { AuditLoggerService } from './auditLogger';
-import { EventService } from '../repositories/event.repository';
+import { EventService } from '../repositories/event.service';
 import { EmailListService } from './emailList';
-import { AuditLogService } from '../repositories/audit-log.repository';
+import { AuditLogService } from '../repositories/aufdit-log.repository';
 
 class ServiceContainer {
   private prisma: PrismaClient;
@@ -18,9 +18,9 @@ class ServiceContainer {
     
     //  Services
     this.auditLogger = new AuditLoggerService(this.prisma);
-    this.eventService = new EventService(this.prisma);
-    this.mailingList = new EmailListService(this.prisma);
-    this.auditLogService = new AuditLogService(this.prisma);
+    this.auditLogService = new AuditLogService(this.prisma, this.auditLogger);
+    this.eventService = new EventService(this.prisma, this.auditLogger);
+    this.mailingList = new EmailListService(this.prisma, this.auditLogger);
   }
 }
 

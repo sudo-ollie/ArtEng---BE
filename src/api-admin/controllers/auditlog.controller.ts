@@ -1,13 +1,12 @@
 import { Request, Response } from 'express';
-import { AuditLevel } from "../../enums/enumsRepo";
+import { AuditLevel } from "../../enums/auditTypes";
 import { services } from '../../api/services/container';
 
 export const AuditLogController = {
-  //  Get All Logs
+  // Get All Logs
   getAllLogs: async (req: Request, res: Response) => {
     try {
       const logs = await services.auditLogService.getAllLogs();
-      
       return res.status(200).json({
         success: true,
         data: logs
@@ -26,19 +25,11 @@ export const AuditLogController = {
     }
   },
 
-  //  Get Logs By User
+  // Get Logs By User
   getLogsByUser: async (req: Request, res: Response) => {
     try {
       const { userId } = req.params;
-      
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: 'User ID is required'
-        });
-      }
-      
-      const logs = await services.auditLogService.getLogById(userId);
+      const logs = await services.auditLogService.getLogsByUserId(userId );
       
       return res.status(200).json({
         success: true,
@@ -47,14 +38,14 @@ export const AuditLogController = {
     } catch (error) {
       console.log(`Audit Log Service | GetLogsByUser - Error ${error}`);
       services.auditLogger.auditLog(
-        "ERROR - GetLogsByUser - AuditLog Service",
+        `ERROR - GetLogsByUser - AuditLog Service - User: ${req.params.userId}`,
         AuditLevel.Error,
         "SYSTEM"
       );
       return res.status(500).json({
         success: false,
-        message: "ERROR : Failed To Fetch"
+        message: "ERROR : Failed To Fetch User Logs"
       });
     }
-  }
+  },
 };

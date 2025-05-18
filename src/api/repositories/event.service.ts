@@ -4,7 +4,7 @@ import { services } from '../services/container';
 import { Event } from "../../types/typesRepo";
 import { PrismaClient } from '.prisma/client';
 
-export class EventService  {
+export class EventRepository  {
   
   constructor(private readonly prisma: PrismaClient) {
   }

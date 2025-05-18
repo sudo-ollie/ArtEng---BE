@@ -1,3 +1,3 @@
-export { AuditLogService } from './audit-log.repository';
-export { EventService } from './event.repository';
+export { AuditLogService } from './aufdit-log.repository';
+export { EventService } from './event.service';
 export { MailingListRepository } from './mailingList.repository';

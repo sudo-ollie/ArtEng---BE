@@ -1,39 +1,39 @@
-import { Router } from 'express';
+import { Router } from "express";
 import { EmailListController } from "../api/controllers/emailList.controller";
-import { EventController } from './controllers/event.controller';
+import { EventController } from "./controllers/event.controller";
 
 export function setupPublicApi() {
   const router = Router();
 
-  //    Test Endpoint
-  router.get('/', (req, res) => {
+  // Test Endpoint
+  router.get("/", (req, res) => {
     res.json({
-      name: 'ArtEng Public API',
-      version: '1.0.0',
-      status: 'online'
+      name: "ArtEng Public API",
+      version: "1.0.0",
+      status: "online",
     });
   });
 
-  //    Dev Debugging
-  router.use((req, res, next) => {
-    console.log("API-PUBLIC DEBUGGING:", {
-      originalUrl: req.originalUrl,
-      baseUrl: req.baseUrl,
-      path: req.path,
-      url: req.url,
+  // Optional Dev Debugging
+  if (process.env.NODE_ENV !== "production") {
+    router.use((req, res, next) => {
+      console.log("API-PUBLIC DEBUGGING:", {
+        originalUrl: req.originalUrl,
+        baseUrl: req.baseUrl,
+        path: req.path,
+        url: req.url,
+      });
+      next();
     });
-    next();
-  });
+  }
 
-  //    Endpoints
-  
-  //    Email list endpoints
-  router.post('/mailing-list/join', EmailListController.joinMailingList);
-  router.post('/mailing-list/leave', EmailListController.leaveMailingList);
-  
-  //    Event endpoints
-  router.get('/events', EventController.getAllEvents);
-  router.get('/events/:id', EventController.getEventById);
-  
+  // Mailing List Endpoints
+  router.post("/mailing-list/join", EmailListController.joinMailingList);
+  router.post("/mailing-list/leave", EmailListController.leaveMailingList);
+
+  // Event Endpoints
+  router.get("/events", EventController.getAllEvents);
+  router.get("/events/:id", EventController.getEventById);
+
   return router;
 }
