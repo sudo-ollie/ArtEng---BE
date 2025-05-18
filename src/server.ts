@@ -30,9 +30,9 @@ export async function startServer() {
   // Start the server
   return new Promise<void>((resolve) => {
     app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-      console.log(`Public API available at http://localhost:${port}/api/v1`);
-      console.log(`Admin API available at http://localhost:${port}/admin/api/v1`);
+      console.log(`⚡️[ArtEng-BE]: Server running on port ${port}`);
+      console.log(`⚡️[ArtEng-BE]: Public API available at http://localhost:${port}/api/v1`);
+      console.log(`⚡️[ArtEng-BE]: Admin API available at http://localhost:${port}/admin/api/v1`);
       resolve();
     });
   });
