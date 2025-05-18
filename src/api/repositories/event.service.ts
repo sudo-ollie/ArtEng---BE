@@ -3,12 +3,16 @@ import { AuditLevel } from '../../enums/enumsRepo';
 import { services } from '../services/container';
 import { Event } from "../../types/typesRepo";
 import { PrismaClient } from '.prisma/client';
+import { AuditLoggerService } from '../services/auditLogger';
+
 
 export class EventRepository  {
   
-  constructor(private readonly prisma: PrismaClient) {
-  }
-  
+    constructor(
+    private readonly prisma: PrismaClient,
+    private readonly auditLogger: AuditLoggerService
+  ) {}
+
   async getAllEvents(): Promise<Event[]> {
     try {
       return await prisma.event.findMany({

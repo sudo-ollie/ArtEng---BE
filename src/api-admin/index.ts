@@ -4,6 +4,7 @@ import { services } from "../api/services/container";
 import { AuditLogController } from "./controllers/auditlog.controller";
 import { AdminEmailListController } from "../api-admin/controllers/emailList.controller";
 import { AdminEventController } from "../api-admin/controllers/events.controller";
+import { createHandler } from '../api/utils/routerTypes';
 
 export function setupAdminApi() {
   const router = Router();
@@ -18,32 +19,30 @@ export function setupAdminApi() {
     });
   });
 
-  // Optional Dev Debugging
-  if (process.env.NODE_ENV !== "production") {
-    router.use((req, res, next) => {
-      console.log("API-ADMIN DEBUGGING:", {
-        originalUrl: req.originalUrl,
-        baseUrl: req.baseUrl,
-        path: req.path,
-        url: req.url,
-      });
-      next();
+  // Dev Debugging
+  router.use((req, res, next) => {
+    console.log("API-ADMIN DEBUGGING:", {
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      path: req.path,
+      url: req.url,
     });
-  }
+    next();
+  });
 
-  // Audit Log Endpoints
-  router.get("/audit-logs", AuditLogController.getAllLogs);
-  router.get("/audit-logs/user/:userId", AuditLogController.getLogsByUser);
-
-  // Mailing List Endpoints
-  router.get("/mailing-list", AdminEmailListController.getAllMailingList);
-  router.get("/mailing-list/export", AdminEmailListController.exportMailingList);
-
-  // Event Endpoints
-  router.delete("/events/:id", AdminEventController.deleteEvent);
-  router.put("/events/:id/lock", AdminEventController.lockEvent);
-  router.put("/events/:id/private", AdminEventController.privateEvent);
-  router.get("/events/stats", AdminEventController.getEventStats);
+  // Audit log endpoints
+  router.get('/audit-logs', createHandler(AuditLogController.getAllLogs));
+  router.get('/audit-logs/user/:userId', createHandler(AuditLogController.getLogsByUser));
+  
+  // Email list endpoints
+  router.get('/mailing-list', createHandler(AdminEmailListController.getAllMailingList));
+  router.get('/mailing-list/export', createHandler(AdminEmailListController.exportMailingList));
+  
+  // Event endpoints
+  router.delete('/events/:id', createHandler(AdminEventController.deleteEvent));
+  router.put('/events/:id/lock', createHandler(AdminEventController.lockEvent));
+  router.put('/events/:id/private', createHandler(AdminEventController.privateEvent));
+  router.get('/events/stats', createHandler(AdminEventController.getEventStats));
 
   return router;
 }
