@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { AuditLoggerService } from './auditLogger';
 import { EventRepository } from '../repositories/event.service';
 import { EmailListService } from './emailList';
-import { AuditLogRepository } from '../repositories/aufdit-log.repository';
+import { AuditLogRepository } from '../repositories/audit-log.repository';
 
 class ServiceContainer {
   private prisma: PrismaClient;

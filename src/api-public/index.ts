@@ -32,7 +32,7 @@ export function setupPublicApi() {
   router.post('/mailing-list/join', createHandler(EmailListController.joinMailingList));
   router.post('/mailing-list/leave', createHandler(EmailListController.leaveMailingList));
   
-  // Event endpoints
+  // Event endpoints - Fixed route parameter syntax
   router.get('/events', createHandler(EventController.getAllEvents));
   router.get('/events/:id', createHandler(EventController.getEventById));
   

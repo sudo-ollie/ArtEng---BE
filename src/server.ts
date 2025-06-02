@@ -9,21 +9,29 @@ import { requestLogger } from "./api/middleware/reqLogger";
 
 export async function startServer() {
   const app = express();
-  const port = parseInt(process.env.PORT || "3001", 10);
+  const port = parseInt(process.env.PORT || "3000", 10); 
+
+  // Ensure required environment variables are set
+  if (!process.env.CLERK_SECRET_KEY) {
+    console.error('ERROR: CLERK_SECRET_KEY environment variable is required');
+    process.exit(1);
+  }
+
+  console.log('=== DEBUG: Environment Check ===');
+  console.log('CLERK_SECRET_KEY set:', !!process.env.CLERK_SECRET_KEY);
+  console.log('CLERK_PUBLISHABLE_KEY set:', !!process.env.CLERK_PUBLISHABLE_KEY);
+  console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
 
   // Basic middleware
   app.use(express.json());
-  app.use(requestLogger);
 
-  // CORS Configuration
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001', 
-    process.env.FRONTEND_URL,
-  ].filter((origin): origin is string => Boolean(origin));
-
-  const corsOptions: cors.CorsOptions = {
-    origin: allowedOrigins,
+  // CORS Configuration - MUST be before Clerk middleware
+  const corsOptions = {
+    origin: [
+      'http://localhost:3000', // Your frontend URL
+      'http://localhost:3001', // Current server
+      // Add any other origins you need for development/production
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type', 
@@ -37,10 +45,28 @@ export async function startServer() {
 
   app.use(cors(corsOptions));
 
-  // Add Clerk middleware - this makes auth available on req.auth
-  app.use(clerkMiddleware());
+  // Add request logging BEFORE Clerk middleware for debugging
+  app.use((req, res, next) => {
+    console.log('=== Incoming Request ===');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
+    console.log('Authorization Header:', req.headers.authorization ? 'Present' : 'Missing');
+    next();
+  });
 
-  // Configure security middleware
+  // CRITICAL: Clerk middleware MUST be before routes that use getAuth()
+  app.use(clerkMiddleware({
+    // Optional: Add configuration if needed
+    secretKey: process.env.CLERK_SECRET_KEY,
+    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+  }));
+
+  console.log('✅ Clerk middleware registered');
+
+  // Add more specific request logging
+  app.use(requestLogger);
+
+  // Configure other middleware AFTER Clerk
   configureSecurityMiddleware(app);
   configureRateLimitingMiddleware(app);
 
@@ -49,11 +75,11 @@ export async function startServer() {
     res.status(200).json({ 
       status: "ok",
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development'
+      clerk: !!process.env.CLERK_SECRET_KEY
     });
   });
 
-  // Mount Public / Admin Endpoints On Separate Routes
+  // Mount API routes
   app.use("/api/v1", setupPublicApi());
   app.use("/admin/api/v1", setupAdminApi());
 
@@ -67,29 +93,18 @@ export async function startServer() {
     ) => {
       console.error("Unhandled error:", err);
       res.status(500).json({ 
-        success: false,
         error: "Internal Server Error",
-        ...(process.env.NODE_ENV === 'development' && { details: err.message })
+        message: err.message 
       });
     }
   );
 
-  // 404 handler
-  app.use('*', (req, res) => {
-    res.status(404).json({
-      success: false,
-      error: 'Route not found',
-      path: req.originalUrl
-    });
-  });
-
   // Start the server
   return new Promise<void>((resolve) => {
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log(`⚡️[ArtEng-BE]: Server running on port ${port}`);
       console.log(`⚡️[ArtEng-BE]: Public API available at http://localhost:${port}/api/v1`);
       console.log(`⚡️[ArtEng-BE]: Admin API available at http://localhost:${port}/admin/api/v1`);
-      console.log(`⚡️[ArtEng-BE]: Health check at http://localhost:${port}/health`);
       resolve();
     });
   });

@@ -10,9 +10,44 @@ export class AdminAuthController {
    */
   static async verifyAdmin(req: Request, res: Response): Promise<void> {
     try {
+      // Debug: Log the incoming request headers
+      console.log('=== DEBUG: Request Headers ===');
+      console.log('Authorization:', req.headers.authorization);
+      console.log('Content-Type:', req.headers['content-type']);
+      console.log('Origin:', req.headers.origin);
+      
       const auth = getAuth(req);
+      console.log('=== DEBUG: Auth Object ===');
+      console.log(JSON.stringify(auth, null, 2));
+      
+      // Try to manually extract token for debugging
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        console.log('=== DEBUG: Token Info ===');
+        console.log('Header format:', authHeader.substring(0, 20) + '...');
+        console.log('Starts with Bearer:', authHeader.startsWith('Bearer '));
+        
+        if (authHeader.startsWith('Bearer ')) {
+          const token = authHeader.substring(7);
+          console.log('Token length:', token.length);
+          console.log('Token start:', token.substring(0, 20) + '...');
+          
+          // Try to manually verify the token
+          try {
+            const payload = await clerkClient.verifyToken(token);
+            console.log('=== DEBUG: Manual Token Verification ===');
+            console.log('Token payload:', JSON.stringify(payload, null, 2));
+          } catch (tokenError) {
+            console.error('=== DEBUG: Token Verification Failed ===');
+            console.error(tokenError);
+          }
+        }
+      } else {
+        console.log('=== DEBUG: No Authorization Header ===');
+      }
       
       if (!auth.userId) {
+        console.log('=== DEBUG: No userId in auth object ===');
         res.status(401).json({
           success: false,
           error: {
@@ -87,7 +122,6 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
-          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -101,7 +135,6 @@ export class AdminAuthController {
       
       if (userRole !== 'admin') {
         res.status(403).json({
-          success: false,
           error: {
             message: 'Admin access required',
             code: ErrorCode.FORBIDDEN
@@ -111,7 +144,6 @@ export class AdminAuthController {
       }
       
       res.json({
-        success: true,
         valid: true,
         user: {
           id: user.id,
@@ -124,7 +156,6 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Session check error:', error);
       res.status(500).json({
-        success: false,
         error: {
           message: 'Session check failed',
           code: ErrorCode.INTERNAL_ERROR
@@ -142,7 +173,6 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
-          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -161,7 +191,6 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Admin logout error:', error);
       res.status(500).json({
-        success: false,
         error: {
           message: 'Logout failed',
           code: ErrorCode.INTERNAL_ERROR
@@ -179,7 +208,6 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
-          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -193,7 +221,6 @@ export class AdminAuthController {
       
       if (userRole !== 'admin') {
         res.status(403).json({
-          success: false,
           error: {
             message: 'Admin access required',
             code: ErrorCode.FORBIDDEN
@@ -203,16 +230,15 @@ export class AdminAuthController {
       }
 
       // Fetch admin dashboard data
-      const users = await clerkClient.users.getUserList({ limit: 100 });
+      const users = await clerkClient.users.getUserList({ limit: 10 });
       
       res.json({
-        success: true,
         stats: {
           totalUsers: users.length,
           activeUsers: users.filter(u => u.lastSignInAt).length,
           adminUsers: users.filter(u => u.publicMetadata?.role === 'admin').length
         },
-        recentUsers: users.slice(0, 10).map(user => ({
+        recentUsers: users.map(user => ({
           id: user.id,
           email: user.emailAddresses[0]?.emailAddress,
           name: `${user.firstName} ${user.lastName}`.trim(),
@@ -224,7 +250,6 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       res.status(500).json({
-        success: false,
         error: {
           message: 'Failed to fetch dashboard data',
           code: ErrorCode.INTERNAL_ERROR
