@@ -1,4 +1,5 @@
 import express from "express";
+import cors from 'cors';
 import { setupPublicApi } from "./api-public";
 import { setupAdminApi } from "./api-admin";
 import { configureSecurityMiddleware } from "./api/middleware/security";
@@ -12,6 +13,26 @@ export async function startServer() {
   // Basic middleware
   app.use(express.json());
   app.use(requestLogger);
+
+  // CORS Configuration - Add this before security middleware
+  const corsOptions = {
+    origin: [
+      'http://localhost:3001', // Your frontend URL
+      'http://localhost:3000', // Current server
+      // Add any other origins you need for development/production
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin'
+    ],
+    credentials: true, // If you need to send cookies/auth headers
+  };
+
+  app.use(cors(corsOptions));
 
   // Configure security middleware
   configureSecurityMiddleware(app);

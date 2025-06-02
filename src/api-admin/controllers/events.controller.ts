@@ -109,5 +109,46 @@ export const AdminEventController = {
         message: 'Internal Server Error'
       });
     }
+  },
+
+  createEvent: async (req: Request, res: Response) => {
+  try {
+    const eventData = req.body;
+    const userId = req.body.userId || 'ADMIN';
+    
+    if (!eventData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Event data is required'
+      });
+    }
+    
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'date', 'location', 'capacity', 
+                           'price', 'sponsor', 'bannerImage', 'thumbImage', 'sponsorLogo'];
+    
+    const missingFields = requiredFields.filter(field => !eventData[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+    
+    const result = await services.eventService.createEvent(eventData, userId);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    return res.status(201).json(result);
+  } catch (error) {
+    console.error('Error Creating Event:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error'
+    });
   }
+}
 };
