@@ -14,6 +14,7 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
+          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -33,6 +34,7 @@ export class AdminAuthController {
         console.warn(`SECURITY: Unauthorized admin access attempt by ${user.emailAddresses[0]?.emailAddress}`);
         
         res.status(403).json({
+          success: false,
           error: {
             message: 'Admin access required',
             code: ErrorCode.FORBIDDEN
@@ -67,6 +69,7 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Error verifying admin access:', error);
       res.status(500).json({
+        success: false,
         error: {
           message: 'Failed to verify admin access',
           code: ErrorCode.INTERNAL_ERROR
@@ -84,6 +87,7 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
+          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -97,6 +101,7 @@ export class AdminAuthController {
       
       if (userRole !== 'admin') {
         res.status(403).json({
+          success: false,
           error: {
             message: 'Admin access required',
             code: ErrorCode.FORBIDDEN
@@ -106,6 +111,7 @@ export class AdminAuthController {
       }
       
       res.json({
+        success: true,
         valid: true,
         user: {
           id: user.id,
@@ -118,6 +124,7 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Session check error:', error);
       res.status(500).json({
+        success: false,
         error: {
           message: 'Session check failed',
           code: ErrorCode.INTERNAL_ERROR
@@ -135,6 +142,7 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
+          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -146,11 +154,6 @@ export class AdminAuthController {
       const user = await clerkClient.users.getUser(auth.userId);
       console.log(`Admin logout: ${user.emailAddresses[0]?.emailAddress} (${auth.userId})`);
       
-      // Optional: Explicitly revoke the session
-      // if (auth.sessionId) {
-      //   await clerkClient.sessions.revokeSession(auth.sessionId);
-      // }
-      
       res.json({ 
         success: true, 
         message: 'Admin session terminated successfully' 
@@ -158,6 +161,7 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Admin logout error:', error);
       res.status(500).json({
+        success: false,
         error: {
           message: 'Logout failed',
           code: ErrorCode.INTERNAL_ERROR
@@ -175,6 +179,7 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         res.status(401).json({
+          success: false,
           error: {
             message: 'Authentication required',
             code: ErrorCode.UNAUTHORIZED
@@ -188,6 +193,7 @@ export class AdminAuthController {
       
       if (userRole !== 'admin') {
         res.status(403).json({
+          success: false,
           error: {
             message: 'Admin access required',
             code: ErrorCode.FORBIDDEN
@@ -197,15 +203,16 @@ export class AdminAuthController {
       }
 
       // Fetch admin dashboard data
-      const users = await clerkClient.users.getUserList({ limit: 10 });
+      const users = await clerkClient.users.getUserList({ limit: 100 });
       
       res.json({
+        success: true,
         stats: {
           totalUsers: users.length,
           activeUsers: users.filter(u => u.lastSignInAt).length,
           adminUsers: users.filter(u => u.publicMetadata?.role === 'admin').length
         },
-        recentUsers: users.map(user => ({
+        recentUsers: users.slice(0, 10).map(user => ({
           id: user.id,
           email: user.emailAddresses[0]?.emailAddress,
           name: `${user.firstName} ${user.lastName}`.trim(),
@@ -217,6 +224,7 @@ export class AdminAuthController {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       res.status(500).json({
+        success: false,
         error: {
           message: 'Failed to fetch dashboard data',
           code: ErrorCode.INTERNAL_ERROR
