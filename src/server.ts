@@ -29,8 +29,8 @@ export async function startServer() {
   const corsOptions = {
     origin: [
       'http://localhost:3000', // Your frontend URL
-      'http://localhost:3001', // Current server
-      // Add any other origins you need for development/production
+      'http://localhost:3001',
+      "https://arteng-staging.netlify.app/"
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
