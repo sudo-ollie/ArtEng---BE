@@ -30,7 +30,7 @@ export async function startServer() {
     origin: [
       'http://localhost:3000', // Your frontend URL
       'http://localhost:3001',
-      "https://arteng-staging.netlify.app/"
+      "https://arteng-staging.netlify.app"
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
