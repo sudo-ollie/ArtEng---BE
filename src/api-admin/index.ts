@@ -38,32 +38,40 @@ export function setupAdminApi() {
   router.get('/auth/session', AdminAuthController.checkSession);
   router.post('/auth/logout', authLimiter, AdminAuthController.logout);
 
-  // Audit log Endpoints
+  // === AUDIT LOG ENDPOINTS ===
+  
+  // Original endpoints (for backward compatibility)
   router.get('/audit-logs', createHandler(AuditLogController.getAllLogs));
   router.get('/audit-logs/user/:userId', createHandler(AuditLogController.getLogsByUser));
   
-  // Email list Endpoints
+  // Enhanced paginated endpoints with filtering and sorting
+  router.get('/audit-logs/paginated', createHandler(AuditLogController.getLogsPaginated));
+  router.get('/audit-logs/user/:userId/paginated', createHandler(AuditLogController.getUserLogsPaginated));
+  
+  // Search and filter endpoints
+  router.get('/audit-logs/search', createHandler(AuditLogController.searchLogs));
+  router.get('/audit-logs/date-range', createHandler(AuditLogController.getLogsByDateRange));
+  router.get('/audit-logs/action-type', createHandler(AuditLogController.getLogsByActionType));
+  
+  // Quick access endpoints
+  router.get('/audit-logs/recent', createHandler(AuditLogController.getRecentLogs));
+  router.get('/audit-logs/statistics', createHandler(AuditLogController.getLogStatistics));
+  
+  // Maintenance endpoint
+  router.delete('/audit-logs/cleanup', createHandler(AuditLogController.deleteOldLogs));
+
+  // === EMAIL LIST ENDPOINTS ===
   router.get('/mailing-list', createHandler(AdminEmailListController.getAllMailingList));
   router.get('/mailing-list/export', createHandler(AdminEmailListController.exportMailingList));
   
-  // Event Endpoints - Fixed route parameter syntax
+  // === EVENT ENDPOINTS ===
   router.delete('/events/:id', createHandler(AdminEventController.deleteEvent));
   router.put('/events/:id/lock', createHandler(AdminEventController.lockEvent));
-  router.put('/events/:id/private', createHandler(AdminEventController.privateEvent));
-  router.get('/events/stats', createHandler(AdminEventController.getEventStats));
-  router.post('/events/create', createHandler(AdminEventController.createEvent));
-
-  // Contentful Endpoints - Fixed route parameter syntax
-  router.get('/articles', createHandler(ContentfulController.getAllArticles));
-  router.get('/articles/drafts', createHandler(ContentfulController.getAllArticlesIncludingDrafts));
-  router.get('/articles/:slug', createHandler(ContentfulController.getArticleBySlug));
-  router.post('/articles', createHandler(ContentfulController.createArticle));
-  router.put('/articles/:id', createHandler(ContentfulController.updateArticle));
-  router.post('/articles/:id/publish', createHandler(ContentfulController.publishArticle));
-  router.post('/articles/:id/unpublish', createHandler(ContentfulController.unpublishArticle));
-
-  // Admin Dashboard Data - Protected endpoint
-  router.get('/dashboard-data', AdminAuthController.getDashboardData);
+  // router.put('/events/:id/unlock', createHandler(AdminEventController.unlockEvent));
+  
+  // === CONTENTFUL ENDPOINTS ===
+  // router.get('/contentful/sync', createHandler(ContentfulController.syncContent));
+  // router.post('/contentful/webhook', createHandler(ContentfulController.handleWebhook));
 
   return router;
 }

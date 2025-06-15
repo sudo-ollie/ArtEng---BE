@@ -9,7 +9,6 @@ if (fs.existsSync("../.env.local")) {
   dotenv.config({ path: "../.env.local" });
 }
 dotenv.config();
-console.log("DB URL : ", process.env.DATABASE_URL);
 const auditLog = new AuditLoggerService(prisma);
 //  Start the server
 startServer().catch((error) => {
