@@ -8,56 +8,47 @@ import { ContentfulController } from "./controllers/contentful.controller";
 import { AdminAuthController } from "./controllers/admin-auth.controller";
 import { createHandler } from '../api/utils/routerTypes';
 import { authLimiter } from "../api/middleware/ratelimiter";
+import { requireAuth, requireAdmin } from "../api/middleware/auth";
 
 export function setupAdminApi() {
   const router = Router();
 
+  // =====  PUBLIC ROUTES  =====
+  
   // Test Endpoint
   router.get("/", (req, res) => {
-    services.auditLogger.auditLog("AuditLog Test", AuditLevel.System, "ArtEng-Dev");
+    services.auditLogger.auditLog("Admin API Live", AuditLevel.System, "Health Check");
     res.json({
       name: "ArtEng Admin API",
-      version: "1.0.0",
       status: "online",
     });
   });
 
-  // Dev Debugging
-  router.use((req, res, next) => {
-    console.log("API-ADMIN DEBUGGING:", {
-      originalUrl: req.originalUrl,
-      baseUrl: req.baseUrl,
-      path: req.path,
-      url: req.url,
-    });
-    next();
-  });
-
-  // Admin Authentication Routes
+  // Admin Authentication Routes - these handle their own auth
   router.post('/auth/verify', authLimiter, AdminAuthController.verifyAdmin);
-  router.get('/auth/session', AdminAuthController.checkSession);
+  router.get('/auth/session', authLimiter, AdminAuthController.checkSession);
   router.post('/auth/logout', authLimiter, AdminAuthController.logout);
 
-  // === AUDIT LOG ENDPOINTS ===
+  // ===== APPLY AUTH MIDDLEWARE TO ALL SUBSEQUENT ROUTES =====
+  // Use type assertion to resolve Express type conflicts
+  router.use(requireAuth as any);
   
-  // Original endpoints (for backward compatibility)
+  router.use((req, res, next) => {
+    requireAdmin(req as any, res, next).catch(next);
+  });
+  
+  // ===== PROTECTED ADMIN ROUTES =====
+  
+  // === AUDIT LOG ENDPOINTS ===
   router.get('/audit-logs', createHandler(AuditLogController.getAllLogs));
   router.get('/audit-logs/user/:userId', createHandler(AuditLogController.getLogsByUser));
-  
-  // Enhanced paginated endpoints with filtering and sorting
   router.get('/audit-logs/paginated', createHandler(AuditLogController.getLogsPaginated));
   router.get('/audit-logs/user/:userId/paginated', createHandler(AuditLogController.getUserLogsPaginated));
-  
-  // Search and filter endpoints
   router.get('/audit-logs/search', createHandler(AuditLogController.searchLogs));
   router.get('/audit-logs/date-range', createHandler(AuditLogController.getLogsByDateRange));
   router.get('/audit-logs/action-type', createHandler(AuditLogController.getLogsByActionType));
-  
-  // Quick access endpoints
   router.get('/audit-logs/recent', createHandler(AuditLogController.getRecentLogs));
   router.get('/audit-logs/statistics', createHandler(AuditLogController.getLogStatistics));
-  
-  // Maintenance endpoint
   router.delete('/audit-logs/cleanup', createHandler(AuditLogController.deleteOldLogs));
 
   // === EMAIL LIST ENDPOINTS ===
@@ -68,7 +59,6 @@ export function setupAdminApi() {
   // === EVENT ENDPOINTS ===
   router.delete('/events/:id', createHandler(AdminEventController.deleteEvent));
   router.put('/events/:id/lock', createHandler(AdminEventController.lockEvent));
-  // router.put('/events/:id/unlock', createHandler(AdminEventController.unlockEvent));
   
   // === CONTENTFUL ENDPOINTS ===
   // router.get('/contentful/sync', createHandler(ContentfulController.syncContent));
