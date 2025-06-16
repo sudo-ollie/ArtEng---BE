@@ -28,11 +28,11 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     if (req.originalUrl.includes('/admin/') || res.statusCode >= 400) {
       // Cast the request to AuthenticatedRequest to access auth property
       const authReq = req as AuthenticatedRequest;
-      services.auditLogger.auditLog(
-        logMessage,
-        res.statusCode >= 400 ? AuditLevel.Error : AuditLevel.System,
-        authReq.auth?.userId || 'anonymous'
-      );
+      // services.auditLogger.auditLog(
+      //   logMessage,
+      //   res.statusCode >= 400 ? AuditLevel.Error : AuditLevel.System,
+      //   authReq.auth?.userId || 'anonymous'
+      // );
     }
   });
   

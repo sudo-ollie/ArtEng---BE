@@ -1,13 +1,11 @@
-// controllers/adminAuthController.ts
 import { Request, Response } from 'express';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { getAuth } from '@clerk/express';
 import { ErrorCode } from '../../api/utils/errorTypes';
+import { services } from '../../api/services/container';
 
 export class AdminAuthController {
-  /**
-   * Verify admin access after Clerk frontend authentication
-   */
+
   static async verifyAdmin(req: Request, res: Response): Promise<void> {
     try {
       // Debug: Log the incoming request headers
@@ -35,10 +33,8 @@ export class AdminAuthController {
           // Try to manually verify the token
           try {
             const payload = await clerkClient.verifyToken(token);
-            console.log('=== DEBUG: Manual Token Verification ===');
-            console.log('Token payload:', JSON.stringify(payload, null, 2));
           } catch (tokenError) {
-            console.error('=== DEBUG: Token Verification Failed ===');
+            
             console.error(tokenError);
           }
         }
@@ -48,6 +44,7 @@ export class AdminAuthController {
       
       if (!auth.userId) {
         console.log('=== DEBUG: No userId in auth object ===');
+        
         res.status(401).json({
           success: false,
           error: {
@@ -198,7 +195,7 @@ export class AdminAuthController {
       });
     }
   }
-
+//
   /**
    * Fetch admin dashboard data
    */

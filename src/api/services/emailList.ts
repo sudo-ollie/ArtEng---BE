@@ -88,7 +88,13 @@ export class EmailListService {
   async getAllMailingList(
     page: number = 1,
     limit: number = 10
-  ): Promise<{ data: any[]; total: number; page: number; limit: number }> {
+  ): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     try {
       const skip = (page - 1) * limit;
 
@@ -98,44 +104,131 @@ export class EmailListService {
           skip,
           take: limit,
           orderBy: { registerTime: "desc" },
+          select: {
+            id: true,
+            email: true,
+            registerTime: true,
+          },
         }),
       ]);
+
+      const totalPages = Math.ceil(total / limit);
 
       return {
         data: items,
         total,
         page,
         limit,
+        totalPages,
       };
     } catch (error) {
-      console.error("Error Fetching Mailing List :", error);
+      console.error("Error Fetching Mailing List:", error);
       await this.auditLogger.auditLog(
-        `Error Fetching Mailing List : ${error}`,
+        `Error Fetching Mailing List: ${error}`,
         AuditLevel.Error,
         "SYSTEM"
       );
-      return { data: [], total: 0, page, limit };
+      return { data: [], total: 0, page, limit, totalPages: 0 };
     }
   }
 
-  async exportMailingList(): Promise<string> {
+  async getMailingListStats(): Promise<{
+    totalEmails: number;
+    monthlyChange: number;
+    monthlyChangePercentage: number;
+  }> {
     try {
-      const emails = await this.prisma.mailingList.findMany({
-        select: { email: true },
+      // Get total count
+      const totalEmails = await this.prisma.mailingList.count();
+
+      // Get this month's count
+      const thisMonthStart = new Date();
+      thisMonthStart.setDate(1);
+      thisMonthStart.setHours(0, 0, 0, 0);
+
+      const thisMonthEmails = await this.prisma.mailingList.count({
+        where: {
+          registerTime: {
+            gte: thisMonthStart,
+          },
+        },
       });
 
-      // CSV Creation
-      const header = "Email";
-      const emailRows = emails.map((item) => item.email);
-      const csvContent = [header, ...emailRows].join("\n");
+      // Get last month's count for comparison
+      const lastMonthStart = new Date();
+      lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+      lastMonthStart.setDate(1);
+      lastMonthStart.setHours(0, 0, 0, 0);
+
+      const lastMonthEnd = new Date(thisMonthStart);
+      lastMonthEnd.setTime(lastMonthEnd.getTime() - 1);
+
+      const lastMonthEmails = await this.prisma.mailingList.count({
+        where: {
+          registerTime: {
+            gte: lastMonthStart,
+            lte: lastMonthEnd,
+          },
+        },
+      });
+
+      // Calculate percentage change
+      const monthlyChange = thisMonthEmails - lastMonthEmails;
+      const monthlyChangePercentage =
+        lastMonthEmails > 0
+          ? (monthlyChange / lastMonthEmails) * 100
+          : thisMonthEmails > 0
+            ? 100
+            : 0;
 
       await this.auditLogger.auditLog(
-        "Successfully Exported Mailing List",
+        `Mailing List Stats Retrieved - Total: ${totalEmails}, Monthly Change: ${monthlyChange}`,
+        AuditLevel.System,
+        "SYSTEM"
+      );
+
+      return {
+        totalEmails,
+        monthlyChange,
+        monthlyChangePercentage,
+      };
+    } catch (error) {
+      console.error("Error getting mailing list stats:", error);
+      await this.auditLogger.auditLog(
+        `Error Getting Mailing List Stats: ${error}`,
+        AuditLevel.Error,
+        "SYSTEM"
+      );
+      throw error;
+    }
+  }
+
+  async exportMailingList(): Promise<
+    Array<{
+      id: string;
+      email: string;
+      registerTime: Date;
+    }>
+  > {
+    try {
+      const emails = await this.prisma.mailingList.findMany({
+        select: {
+          id: true,
+          email: true,
+          registerTime: true,
+        },
+        orderBy: {
+          registerTime: "desc",
+        },
+      });
+
+      await this.auditLogger.auditLog(
+        `Successfully Exported Mailing List - ${emails.length} emails`,
         AuditLevel.Export,
         "ADMIN"
       );
 
-      return csvContent;
+      return emails;
     } catch (error) {
       console.error("Error Exporting Mailing List:", error);
       await this.auditLogger.auditLog(
@@ -143,7 +236,7 @@ export class EmailListService {
         AuditLevel.Error,
         "SYSTEM"
       );
-      return "";
+      return [];
     }
   }
 

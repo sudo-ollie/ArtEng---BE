@@ -7,5 +7,6 @@ export enum AuditLevel {
     Activate = 5,
     Deactivate = 6,
     Export = 7,
-    Error = 8
+    Error = 8,
+    SignUp = 9
 }

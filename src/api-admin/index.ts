@@ -62,6 +62,7 @@ export function setupAdminApi() {
 
   // === EMAIL LIST ENDPOINTS ===
   router.get('/mailing-list', createHandler(AdminEmailListController.getAllMailingList));
+  router.get('/mailing-list/stats', createHandler(AdminEmailListController.getMailingListStats));
   router.get('/mailing-list/export', createHandler(AdminEmailListController.exportMailingList));
   
   // === EVENT ENDPOINTS ===
