@@ -1,25 +1,58 @@
 import rateLimit from 'express-rate-limit';
 import express from 'express';
 
-//  General Endpoint Ratelimiter
+//  General API rate limiter
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, //  15 minutes
-  max: 5, //  IP = 100 per windowMs
-  standardHeaders: false, //    Don't include ratelimit info in response
-  legacyHeaders: false, //  Disable the `X-RateLimit-*` headers
-  message: 'Too many requests, please try again after 15 minutes'
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many requests, please try again later',
+    retryAfter: '15 minutes'
+  },
+  skip: (req) => {
+    return req.path === '/health';
+  }
 });
 
-//  Strict Ratelimiter
+//  Auth limiter
 export const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, //  1 hour
-  max: 5, //    Limit each IP to 5 login requests per hour
-  standardHeaders: false,
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
   legacyHeaders: false,
-  message: 'Too many login attempts, please try again after an hour'
+  message: {
+    error: 'Too many authentication attempts',
+    retryAfter: '15 minutes'
+  },
+  skipSuccessfulRequests: true,
+});
+
+//  Strict limiter
+export const strictLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many sensitive operation attempts',
+    retryAfter: '1 hour'
+  }
+});
+
+//  Admin operations limiter
+export const adminLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many admin operations',
+    retryAfter: '5 minutes'
+  }
 });
 
 export const configureRateLimitingMiddleware = (app: express.Application): void => {
-  //    Apply to all routes
   app.use(apiLimiter);
 };

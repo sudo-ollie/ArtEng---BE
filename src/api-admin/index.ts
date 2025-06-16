@@ -59,6 +59,8 @@ export function setupAdminApi() {
   // === EVENT ENDPOINTS ===
   router.delete('/events/:id', createHandler(AdminEventController.deleteEvent));
   router.put('/events/:id/lock', createHandler(AdminEventController.lockEvent));
+  router.put('/events/:id/private', createHandler(AdminEventController.privateEvent));
+  router.get('/events/stats', createHandler(AdminEventController.getEventStats));
   
   // === CONTENTFUL ENDPOINTS ===
   // router.get('/contentful/sync', createHandler(ContentfulController.syncContent));

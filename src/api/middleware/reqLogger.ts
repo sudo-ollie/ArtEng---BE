@@ -1,40 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
-import { services } from '../services/container';
-import { AuditLevel } from '../../enums/enumsRepo';
-
-// Define a type that extends Request to include Clerk auth properties
-interface AuthenticatedRequest extends Request {
-  auth?: {
-    userId: string;
-    sessionId?: string;
-    // Add other properties as needed
-  };
-}
+import { StructuredLogger } from '../services/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
+  const requestId = uuidv4();
+  const startTime = Date.now();
   
-  // Log when the request completes
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const logMessage = `${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`;
+  (req as any).requestId = requestId;
+  StructuredLogger.logRequest(req);
+  const originalEnd = res.end.bind(res);
+  
+  res.end = ((chunk?: any, encoding?: BufferEncoding | (() => void), cb?: () => void) => {
+    const responseTime = Date.now() - startTime;
     
-    //  Console not DB Logging In Dev
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(logMessage);
+    StructuredLogger.logRequest(req, responseTime, res.statusCode);
+    
+    // Log slow requests
+    if (responseTime > 1000) {
+      StructuredLogger.logInfo('Slow Request Detected', {
+        requestId,
+        method: req.method,
+        url: req.url,
+        responseTime,
+        statusCode: res.statusCode
+      });
     }
     
-    // Log to audit log for specific endpoints or status codes
-    if (req.originalUrl.includes('/admin/') || res.statusCode >= 400) {
-      // Cast the request to AuthenticatedRequest to access auth property
-      const authReq = req as AuthenticatedRequest;
-      // services.auditLogger.auditLog(
-      //   logMessage,
-      //   res.statusCode >= 400 ? AuditLevel.Error : AuditLevel.System,
-      //   authReq.auth?.userId || 'anonymous'
-      // );
+    if (typeof encoding === 'function') {
+      return originalEnd(chunk, encoding);
+    } else {
+      return originalEnd(chunk, encoding as BufferEncoding, cb);
     }
-  });
+  }) as any;
   
   next();
 };
