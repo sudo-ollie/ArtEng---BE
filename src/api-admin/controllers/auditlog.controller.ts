@@ -12,7 +12,8 @@ import {
 import { AuditLogQueryOptions } from '../../types/AuditLogQueryOptions';
 
 export const AuditLogController = {
-  // Get All Logs (keeping original for backward compatibility)
+  
+  //  Get All Logs (keeping original for backward compatibility)
   getAllLogs: async (req: Request, res: Response) => {
     try {
       const logs = await services.auditLogService.getAllLogs();
@@ -21,11 +22,10 @@ export const AuditLogController = {
         data: logs
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetAllLogs - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - GetAllLogs - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -34,7 +34,7 @@ export const AuditLogController = {
     }
   },
 
-  // Enhanced paginated logs with filtering and sorting
+  //  Enhanced paginated logs with filtering and sorting
   getLogsPaginated: async (req: Request, res: Response) => {
     try {
       const {
@@ -48,7 +48,7 @@ export const AuditLogController = {
         searchTerm
       } = req.query;
 
-      // Sanitize all inputs
+      //  Sanitize all inputs
       const options: AuditLogQueryOptions = removeUndefinedProperties({
         limit: sanitizeNumber(limit, 50),
         skip: sanitizeNumber(skip, 0),
@@ -76,11 +76,10 @@ export const AuditLogController = {
         }
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetLogsPaginated - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - GetLogsPaginated - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -89,7 +88,7 @@ export const AuditLogController = {
     }
   },
 
-  // Get Logs By User (keeping original for backward compatibility)
+  //  Get Logs By User (keeping original for backward compatibility)
   getLogsByUser: async (req: Request, res: Response) => {
     try {
       const { userId } = req.params;
@@ -109,11 +108,10 @@ export const AuditLogController = {
         data: logs
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetLogsByUser - Error ${error}`);
       services.auditLogger.auditLog(
         `ERROR - GetLogsByUser - AuditLog Service - User: ${req.params.userId}`,
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -122,7 +120,7 @@ export const AuditLogController = {
     }
   },
 
-  // Enhanced user logs with pagination
+  //  Enhanced user logs with pagination
   getUserLogsPaginated: async (req: Request, res: Response) => {
     try {
       const { userId } = req.params;
@@ -146,7 +144,7 @@ export const AuditLogController = {
         searchTerm: sanitizeString(searchTerm)
       };
 
-      // Remove undefined values
+      //  Remove undefined values
       Object.keys(options).forEach(key => {
         if (options[key as keyof typeof options] === undefined || options[key as keyof typeof options] === '') {
           delete options[key as keyof typeof options];
@@ -169,11 +167,10 @@ export const AuditLogController = {
         }
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetUserLogsPaginated - Error ${error}`);
       services.auditLogger.auditLog(
         `ERROR - GetUserLogsPaginated - AuditLog Service - User: ${req.params.userId}`,
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -182,7 +179,7 @@ export const AuditLogController = {
     }
   },
 
-  // Get logs by date range
+  //  Get logs by date range
   getLogsByDateRange: async (req: Request, res: Response) => {
     try {
       const { dateFrom, dateTo, limit, skip, sort } = req.query;
@@ -219,11 +216,10 @@ export const AuditLogController = {
         }
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetLogsByDateRange - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - GetLogsByDateRange - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -232,7 +228,7 @@ export const AuditLogController = {
     }
   },
 
-  // Get logs by action type
+  //  Get logs by action type
   getLogsByActionType: async (req: Request, res: Response) => {
     try {
       const { actionTypes, limit, skip, sort } = req.query;
@@ -267,11 +263,10 @@ export const AuditLogController = {
         }
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetLogsByActionType - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - GetLogsByActionType - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -280,7 +275,7 @@ export const AuditLogController = {
     }
   },
 
-  // Search logs
+  //  Search logs
   searchLogs: async (req: Request, res: Response) => {
     try {
       const { q, searchTerm, limit, skip, sort } = req.query;
@@ -316,11 +311,10 @@ export const AuditLogController = {
         searchTerm: search
       });
     } catch (error) {
-      console.log(`Audit Log Service | SearchLogs - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - SearchLogs - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -329,7 +323,7 @@ export const AuditLogController = {
     }
   },
 
-  // Get recent logs
+  //  Get recent logs
   getRecentLogs: async (req: Request, res: Response) => {
     try {
       const { count } = req.query;
@@ -343,11 +337,10 @@ export const AuditLogController = {
         count: logs.length
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetRecentLogs - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - GetRecentLogs - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -356,7 +349,7 @@ export const AuditLogController = {
     }
   },
 
-  // Get log statistics
+  //  Get log statistics
   getLogStatistics: async (req: Request, res: Response) => {
     try {
       const { dateFrom, dateTo } = req.query;
@@ -371,11 +364,10 @@ export const AuditLogController = {
         data: stats
       });
     } catch (error) {
-      console.log(`Audit Log Service | GetLogStatistics - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - GetLogStatistics - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,
@@ -384,13 +376,13 @@ export const AuditLogController = {
     }
   },
 
-  // Delete old logs (maintenance endpoint)
+  //  Delete old logs
   deleteOldLogs: async (req: Request, res: Response) => {
     try {
       const { days } = req.query;
       const sanitizedDays = sanitizeNumber(days, 90);
 
-      // Minimum 30 days to prevent accidental deletion of recent logs
+      //  Minimum 30 days to prevent accidental deletion of recent logs
       if (sanitizedDays < 30) {
         return res.status(400).json({
           success: false,
@@ -408,11 +400,10 @@ export const AuditLogController = {
         deletedCount: result.deletedCount
       });
     } catch (error) {
-      console.log(`Audit Log Service | DeleteOldLogs - Error ${error}`);
       services.auditLogger.auditLog(
         "ERROR - DeleteOldLogs - AuditLog Service",
         AuditLevel.Error,
-        "SYSTEM"
+        "AuditLog Service"
       );
       return res.status(500).json({
         success: false,

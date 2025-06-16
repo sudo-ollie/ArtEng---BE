@@ -8,29 +8,16 @@ export class AdminAuthController {
 
   static async verifyAdmin(req: Request, res: Response): Promise<void> {
     try {
-      // Debug: Log the incoming request headers
-      console.log('=== DEBUG: Request Headers ===');
-      console.log('Authorization:', req.headers.authorization);
-      console.log('Content-Type:', req.headers['content-type']);
-      console.log('Origin:', req.headers.origin);
-      
       const auth = getAuth(req);
-      console.log('=== DEBUG: Auth Object ===');
-      console.log(JSON.stringify(auth, null, 2));
+
       
       // Try to manually extract token for debugging
       const authHeader = req.headers.authorization;
       if (authHeader) {
-        console.log('=== DEBUG: Token Info ===');
-        console.log('Header format:', authHeader.substring(0, 20) + '...');
-        console.log('Starts with Bearer:', authHeader.startsWith('Bearer '));
-        
+
         if (authHeader.startsWith('Bearer ')) {
           const token = authHeader.substring(7);
-          console.log('Token length:', token.length);
-          console.log('Token start:', token.substring(0, 20) + '...');
           
-          // Try to manually verify the token
           try {
             const payload = await clerkClient.verifyToken(token);
           } catch (tokenError) {
@@ -39,11 +26,11 @@ export class AdminAuthController {
           }
         }
       } else {
-        console.log('=== DEBUG: No Authorization Header ===');
+        // Audit Log Here
       }
       
       if (!auth.userId) {
-        console.log('=== DEBUG: No userId in auth object ===');
+        // Audit Log Here
         
         res.status(401).json({
           success: false,
@@ -58,29 +45,21 @@ export class AdminAuthController {
       const user = await clerkClient.users.getUser(auth.userId);
       const userRole = user.publicMetadata?.role as string | undefined;
       
-      // Log admin access attempt
-      console.log(`Admin access attempt: ${user.emailAddresses[0]?.emailAddress} (${auth.userId}) - Role: ${userRole}`);
-      
       if (userRole !== 'admin') {
-        // Log unauthorized attempt
-        console.warn(`SECURITY: Unauthorized admin access attempt by ${user.emailAddresses[0]?.emailAddress}`);
+
+        // Audit Log Here - Unauth attempt
         
         res.status(403).json({
           success: false,
           error: {
             message: 'Admin access required',
             code: ErrorCode.FORBIDDEN
-          },
-          user: {
-            email: user.emailAddresses[0]?.emailAddress,
-            role: userRole || 'user'
           }
         });
         return;
       }
 
-      // Success - return admin user data
-      console.log(`Admin access granted: ${user.emailAddresses[0]?.emailAddress}`);
+      // Audit Log Here
       
       res.json({
         success: true,
@@ -110,9 +89,6 @@ export class AdminAuthController {
     }
   }
 
-  /**
-   * Check admin session validity
-   */
   static async checkSession(req: Request, res: Response): Promise<void> {
     try {
       const auth = getAuth(req);
@@ -161,9 +137,6 @@ export class AdminAuthController {
     }
   }
 
-  /**
-   * Handle admin logout with server-side cleanup
-   */
   static async logout(req: Request, res: Response): Promise<void> {
     try {
       const auth = getAuth(req);
@@ -195,10 +168,7 @@ export class AdminAuthController {
       });
     }
   }
-//
-  /**
-   * Fetch admin dashboard data
-   */
+
   static async getDashboardData(req: Request, res: Response): Promise<void> {
     try {
       const auth = getAuth(req);
@@ -226,7 +196,6 @@ export class AdminAuthController {
         return;
       }
 
-      // Fetch admin dashboard data
       const users = await clerkClient.users.getUserList({ limit: 10 });
       
       res.json({

@@ -17,11 +17,6 @@ export async function startServer() {
     process.exit(1);
   }
 
-  console.log('=== DEBUG: Environment Check ===');
-  console.log('CLERK_SECRET_KEY set:', !!process.env.CLERK_SECRET_KEY);
-  console.log('CLERK_PUBLISHABLE_KEY set:', !!process.env.CLERK_PUBLISHABLE_KEY);
-  console.log('DATABASE_URL set:', !!process.env.DATABASE_URL);
-
   // Basic middleware
   app.use(express.json());
 
@@ -44,15 +39,6 @@ export async function startServer() {
   };
 
   app.use(cors(corsOptions));
-
-  // Add request logging BEFORE Clerk middleware for debugging
-  app.use((req, res, next) => {
-    console.log('=== Incoming Request ===');
-    console.log('Method:', req.method);
-    console.log('URL:', req.url);
-    console.log('Authorization Header:', req.headers.authorization ? 'Present' : 'Missing');
-    next();
-  });
 
   // CRITICAL: Clerk middleware MUST be before routes that use getAuth()
   app.use(clerkMiddleware({

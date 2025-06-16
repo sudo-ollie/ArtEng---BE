@@ -30,8 +30,7 @@ export const AdminEmailListController = {
         );
         return res.status(400).json({
           success: false,
-          message: "Invalid input parameters",
-          errors: errors.array(),
+          message: "Invalid input parameters"
         });
       }
 
@@ -126,8 +125,7 @@ export const AdminEmailListController = {
         );
         return res.status(400).json({
           success: false,
-          message: "Invalid input parameters",
-          errors: errors.array(),
+          message: "Invalid input parameters"
         });
       }
 
