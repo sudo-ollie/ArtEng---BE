@@ -4,3 +4,4 @@ node_modules
 # Keep dev secrets from commits, allow .env to be commited so you always have required info
 .env.local
 .env.test
+/logs
