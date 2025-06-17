@@ -1,13 +1,49 @@
-import { Router } from "express";
+import { Router } from 'express';
+import { EmailListController } from "../api/controllers/emailList.controller";
+import { EventController } from '../api-public/controllers/event.controller';
+import { createHandler } from '../api/utils/routerTypes';
+import { sanitizeInput } from '../api/middleware/validation';
+import { apiLimiter } from '../api/middleware/ratelimiter';
 
-export function configureSharedApi() {
+export function setupPublicApi() {
   const router = Router();
 
-  // You can add shared middleware here later
-  // For example: logging middleware, basic security, etc.
+  router.get('/', (req, res) => {
+    res.json({
+      name: 'ArtEng Public API',
+      version: '1.0.0',
+      status: 'online'
+    });
+  });
 
+  router.use(sanitizeInput);
+
+  if (process.env.NODE_ENV === 'development') {
+    router.use((req, res, next) => {
+      console.log("API-PUBLIC DEBUGGING:", {
+        originalUrl: req.originalUrl,
+        baseUrl: req.baseUrl,
+        path: req.path,
+        url: req.url,
+      });
+      next();
+    });
+  }
+
+  router.post('/mailing-list/join', 
+    apiLimiter,
+    EmailListController.validateJoinMailingList,
+    createHandler(EmailListController.joinMailingList)
+  );
+  
+  router.post('/mailing-list/leave', 
+    apiLimiter,
+    EmailListController.validateLeaveMailingList,
+    createHandler(EmailListController.leaveMailingList)
+  );
+  
+  router.get('/events', createHandler(EventController.getAllEvents));
+  router.get('/events/:id', createHandler(EventController.getEventById));
+  
   return router;
 }
-
-// Export any shared utilities, models, or types that will be used by both APIs
-export * from "./utils/errorTypes";
