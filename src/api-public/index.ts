@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { EmailListController } from "../api/controllers/emailList.controller";
-import { EventController } from './controllers/event.controller';
+import { EventController } from '../api-public/controllers/event.controller';
 import { createHandler } from '../api/utils/routerTypes';
+import { sanitizeInput } from '../api/middleware/validation';
+import { apiLimiter } from '../api/middleware/ratelimiter';
 
 export function setupPublicApi() {
   const router = Router();
 
-  // Test Endpoint
   router.get('/', (req, res) => {
     res.json({
       name: 'ArtEng Public API',
@@ -15,26 +16,46 @@ export function setupPublicApi() {
     });
   });
 
-  // Dev Debugging
-  router.use((req, res, next) => {
-    console.log("API-PUBLIC DEBUGGING:", {
-      originalUrl: req.originalUrl,
-      baseUrl: req.baseUrl,
-      path: req.path,
-      url: req.url,
-    });
-    next();
-  });
+  router.use(sanitizeInput);
 
-  // Endpoints
+  // Development debugging middleware
+  if (process.env.NODE_ENV === 'development') {
+    router.use((req, res, next) => {
+      console.log("API-PUBLIC DEBUGGING:", {
+        originalUrl: req.originalUrl,
+        baseUrl: req.baseUrl,
+        path: req.path,
+        url: req.url,
+        method: req.method,
+        query: req.query,
+      });
+      next();
+    });
+  }
+
+  // Mailing List Endpoints
+  router.post('/mailing-list/join', 
+    apiLimiter,
+    EmailListController.validateJoinMailingList,
+    createHandler(EmailListController.joinMailingList)
+  );
   
-  // Email list endpoints
-  router.post('/mailing-list/join', createHandler(EmailListController.joinMailingList));
-  router.post('/mailing-list/leave', createHandler(EmailListController.leaveMailingList));
+  router.post('/mailing-list/leave', 
+    apiLimiter,
+    EmailListController.validateLeaveMailingList,
+    createHandler(EmailListController.leaveMailingList)
+  );
   
-  // Event endpoints - Fixed route parameter syntax
-  router.get('/events', createHandler(EventController.getAllEvents));
-  router.get('/events/:id', createHandler(EventController.getEventById));
+  // Public Event Endpoints
+  router.get('/events', 
+    apiLimiter,
+    createHandler(EventController.getAllEvents)
+  );
+  
+  router.get('/events/:id', 
+    apiLimiter,
+    createHandler(EventController.getEventById)
+  );
   
   return router;
 }

@@ -473,4 +473,82 @@ async getPublicEventById(eventId: string) {
     };
   }
 }
+
+async getEventByIdAdmin(eventId: string, userId: string) {
+  try {
+    // Validate input
+    if (!eventId || typeof eventId !== 'string') {
+      return {
+        success: false,
+        message: 'Valid event ID is required'
+      };
+    }
+
+    if (!userId || typeof userId !== 'string') {
+      return {
+        success: false,
+        message: 'Valid user ID is required'
+      };
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: {
+        id: eventId
+      },
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        description: true,
+        date: true,
+        location: true,
+        capacity: true,
+        price: true,
+        sponsor: true,
+        bannerImage: true,
+        thumbImage: true,
+        sponsorLogo: true,
+        eventActive: true,
+        eventPrivate: true,
+        eventLocked: true,
+        publishDate: true,
+      }
+    });
+
+    if (!event) {
+      return {
+        success: false,
+        message: 'Event not found'
+      };
+    }
+
+    // Log the admin access
+    await this.auditLogger.auditLog(
+      `Admin accessed event details - Event: ${event.title} (${eventId})`,
+      AuditLevel.System,
+      userId
+    );
+
+    return {
+      success: true,
+      data: event
+    };
+
+  } catch (error) {
+    console.error('EventService.getEventById error:', error);
+    
+    // Log the error
+    await this.auditLogger.auditLog(
+      `ERROR - Failed to get event by ID: ${eventId} - ${error instanceof Error ? error.message : 'Unknown error'}`,
+      AuditLevel.Error,
+      userId
+    );
+    
+    return {
+      success: false,
+      message: 'Failed to retrieve event',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
 }

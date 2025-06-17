@@ -408,4 +408,63 @@ getAllEvents: async (req: Request, res: Response) => {
       });
     }
   },
+
+  getEventById: async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const authReq = req as AuthRequest;
+    const userId = authReq.auth?.userId || "ADMIN";
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Event ID is required",
+      });
+    }
+
+    if (!userId || typeof userId !== "string" || userId.trim().length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "Valid authentication required",
+      });
+    }
+
+    console.log(`Admin getEventById request - User: ${userId}, EventID: ${id}`, {
+      eventId: id,
+      userId,
+      ip: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
+
+    const result = await services.eventService.getEventByIdAdmin(id, userId);
+
+    if (!result.success) {
+      console.warn(`getEventById service failed for user ${userId}:`, result.message);
+      const statusCode = result.message === "Event not found" ? 404 : 400;
+      return res.status(statusCode).json(result);
+    }
+
+    res.set({
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+    });
+
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error("Error Fetching Event by ID:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: (req as AuthRequest).auth?.userId,
+      eventId: req.params.id,
+      ip: req.ip,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+},
 };
