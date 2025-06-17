@@ -155,11 +155,11 @@ export function setupAdminApi() {
     requireAdmin,
     createHandler(ContentfulController.unpublishArticle)
   );
-    router.post(
-    '/contentful/upload-image',
+  router.post(
+    "/contentful/upload-image",
     requireAuth,
     requireAdmin,
-    createHandler(ContentfulController.uploadImage)
+    ContentfulController.uploadImage
   );
 
   // Admin Dashboard Data

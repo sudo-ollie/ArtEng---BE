@@ -3,12 +3,7 @@ import { managementClient } from '../lib/contentful-management'
 import { previewClient } from '../lib/contentful-preview'
 import { Article, ArticleFields } from '../../types/typesRepo'
 import { richTextFromMarkdown } from '@contentful/rich-text-from-markdown';
-
-interface UploadImageParams {
-  file: Express.Multer.File;
-  title: string;
-  description?: string;
-}
+import { UploadImageParams } from '../../types/UploadImageParams';
 
 export class ContentfulService {
 
@@ -219,53 +214,56 @@ static async getArticleBySlug(slug: string): Promise<Article | null> {
     }
   }
 
-  static async uploadImage(params: UploadImageParams) {
-  try {
-    const { file, title, description = '' } = params;
-    
-    const space = await managementClient.getSpace(process.env.CONTENTFUL_SPACE_ID!);
-    const environment = await space.getEnvironment('master');
+static async uploadImage(params: UploadImageParams) {
+    try {
+      const { file, title, description = '' } = params;
+      
+      const space = await managementClient.getSpace(process.env.CONTENTFUL_SPACE_ID!);
+      const environment = await space.getEnvironment('master');
 
-    const asset = await environment.createAsset({
-      fields: {
-        title: {
-          'en-US': title
-        },
-        description: {
-          'en-US': description
-        },
-        file: {
-          'en-US': {
-            contentType: file.mimetype,
-            fileName: file.originalname,
-            upload: file.buffer
+      const base64Data = file.buffer.toString('base64');
+      const dataUri = `data:${file.mimetype};base64,${base64Data}`;
+
+      const asset = await environment.createAsset({
+        fields: {
+          title: {
+            'en-US': title
+          },
+          description: {
+            'en-US': description
+          },
+          file: {
+            'en-US': {
+              contentType: file.mimetype,
+              fileName: file.originalname,
+              upload: dataUri
+            }
           }
         }
-      }
-    });
+      });
 
-    const processedAsset = await asset.processForAllLocales();
-    
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    while (attempts < maxAttempts) {
-      const updatedAsset = await environment.getAsset(processedAsset.sys.id);
+      const processedAsset = await asset.processForAllLocales();
       
-      if (updatedAsset.fields.file?.['en-US']?.url) {
-        const publishedAsset = await updatedAsset.publish();
-        return publishedAsset;
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (attempts < maxAttempts) {
+        const updatedAsset = await environment.getAsset(processedAsset.sys.id);
+        
+        if (updatedAsset.fields.file?.['en-US']?.url) {
+          const publishedAsset = await updatedAsset.publish();
+          return publishedAsset;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
       }
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      attempts++;
+      throw new Error('Asset processing timed out');
+      
+    } catch (error) {
+      console.error('Error uploading image to Contentful:', error);
+      throw error;
     }
-    
-    throw new Error('Asset processing timed out');
-    
-  } catch (error) {
-    console.error('Error uploading image to Contentful:', error);
-    throw error;
   }
-}
 }
