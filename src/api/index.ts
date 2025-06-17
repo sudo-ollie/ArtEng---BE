@@ -1,49 +1,43 @@
 import { Router } from 'express';
-import { EmailListController } from "../api/controllers/emailList.controller";
-import { EventController } from '../api-public/controllers/event.controller';
-import { createHandler } from '../api/utils/routerTypes';
-import { sanitizeInput } from '../api/middleware/validation';
-import { apiLimiter } from '../api/middleware/ratelimiter';
+import { createHandler } from './utils/routerTypes';
 
-export function setupPublicApi() {
+export function setupBaseApi() {
   const router = Router();
 
+  // Core API info
   router.get('/', (req, res) => {
     res.json({
-      name: 'ArtEng Public API',
+      name: 'ArtEng API',
       version: '1.0.0',
-      status: 'online'
+      status: 'online',
+      endpoints: {
+        public: '/api/v1',
+        admin: '/admin/api/v1'
+      },
+      documentation: '/api/docs'
     });
   });
 
-  router.use(sanitizeInput);
-
-  if (process.env.NODE_ENV === 'development') {
-    router.use((req, res, next) => {
-      console.log("API-PUBLIC DEBUGGING:", {
-        originalUrl: req.originalUrl,
-        baseUrl: req.baseUrl,
-        path: req.path,
-        url: req.url,
-      });
-      next();
+  // Health check endpoint
+  router.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development'
     });
-  }
+  });
 
-  router.post('/mailing-list/join', 
-    apiLimiter,
-    EmailListController.validateJoinMailingList,
-    createHandler(EmailListController.joinMailingList)
-  );
-  
-  router.post('/mailing-list/leave', 
-    apiLimiter,
-    EmailListController.validateLeaveMailingList,
-    createHandler(EmailListController.leaveMailingList)
-  );
-  
-  router.get('/events', createHandler(EventController.getAllEvents));
-  router.get('/events/:id', createHandler(EventController.getEventById));
-  
+  // API status endpoint
+  router.get('/status', (req, res) => {
+    res.json({
+      api: 'online',
+      database: 'connected',
+      version: '1.0.0',
+      build: process.env.BUILD_NUMBER || 'local',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   return router;
 }

@@ -81,6 +81,12 @@ export function setupAdminApi() {
   );
 
   // Event Endpoints
+  router.get(
+    "/events",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEventController.getAllEvents)
+  );
   router.delete(
     "/events/:id",
     requireAuth,

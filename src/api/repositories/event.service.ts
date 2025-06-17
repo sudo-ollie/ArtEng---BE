@@ -11,25 +11,6 @@ export class EventRepository {
     private readonly auditLogger: AuditLoggerService
   ) {}
 
-  async getAllEvents(): Promise<Event[]> {
-    try {
-      return await prisma.event.findMany({
-        where: {
-          eventActive: true,
-          eventPrivate: false,
-        },
-      });
-    } catch (error) {
-      console.error("Error Fetching Events :", error);
-      await services.auditLogger.auditLog(
-        `Error Fetching Events : ${error}`,
-        AuditLevel.Error,
-        "SYSTEM"
-      );
-      return [];
-    }
-  }
-
   async getEventById(id: string): Promise<Event | null> {
     try {
       return await prisma.event.findUnique({
@@ -232,4 +213,264 @@ export class EventRepository {
       return { success: false, message: "Failed To Create Event" };
     }
   }
+
+  async getAllEvents(
+    options: {
+      page: number;
+      limit: number;
+      search?: string;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    },
+    userId: string
+  ) {
+    try {
+      // Log the action for audit purposes
+      await this.auditLogger.auditLog(
+        `Admin getAllEvents - Page: ${options.page}, Limit: ${options.limit}, Search: "${options.search || "none"}"`,
+        AuditLevel.Export,
+        userId
+      );
+
+      const {
+        page,
+        limit,
+        search,
+        sortBy = "createdAt",
+        sortOrder = "desc",
+      } = options;
+      const offset = (page - 1) * limit;
+
+      // Build the where clause for search
+      const whereClause: any = {};
+
+      if (search) {
+        whereClause.OR = [
+          { title: { contains: search, mode: "insensitive" } },
+          { subtitle: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+          { location: { contains: search, mode: "insensitive" } },
+          { sponsor: { contains: search, mode: "insensitive" } },
+        ];
+      }
+
+      // Build the orderBy clause
+      const orderBy: any = {};
+
+      // Validate sortBy field to prevent injection
+      const allowedSortFields = [
+        "id",
+        "title",
+        "subtitle",
+        "description",
+        "date",
+        "location",
+        "capacity",
+        "price",
+        "sponsor",
+        "publishDate",
+        "eventActive",
+        "eventPrivate",
+        "eventLocked",
+      ];
+
+      if (allowedSortFields.includes(sortBy)) {
+        orderBy[sortBy] = sortOrder;
+      } else {
+        orderBy.date = "desc"; // fallback to default - sort by event date
+      }
+
+      // Get total count for pagination
+      const totalCount = await this.prisma.event.count({
+        where: whereClause,
+      });
+
+      // Get events with pagination
+      const events = await this.prisma.event.findMany({
+        where: whereClause,
+        orderBy,
+        skip: offset,
+        take: limit,
+        select: {
+          id: true,
+          title: true,
+          subtitle: true,
+          description: true,
+          date: true,
+          location: true,
+          capacity: true,
+          price: true,
+          sponsor: true,
+          bannerImage: true,
+          thumbImage: true,
+          sponsorLogo: true,
+          publishDate: true,
+          eventActive: true,
+          eventPrivate: true,
+          eventLocked: true,
+        },
+      });
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      return {
+        success: true,
+        data: events,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      };
+    } catch (error) {
+      await this.auditLogger.auditLog(
+        `Admin getAllEvents failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        AuditLevel.Error,
+        userId
+      );
+
+      console.error("EventService.getAllEvents error:", error);
+
+      return {
+        success: false,
+        message: "Failed to retrieve events",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+/**
+ * Get public events - for public website display
+ * Only returns active, non-private, future events
+ */
+async getPublicEvents(options?: {
+  limit?: number;
+  includeUpcoming?: boolean;
+  includePast?: boolean;
+}) {
+  try {
+    const { 
+      limit = 50, 
+      includeUpcoming = true, 
+      includePast = false 
+    } = options || {};
+
+    // Build date filter
+    const dateFilter: any = {};
+    if (includeUpcoming && !includePast) {
+      dateFilter.gte = new Date(); // Only future events
+    } else if (includePast && !includeUpcoming) {
+      dateFilter.lt = new Date(); // Only past events
+    }
+    // If both true or both false, no date filter (all events)
+
+    const events = await this.prisma.event.findMany({
+      where: {
+        eventActive: true,
+        eventPrivate: false,
+        eventLocked: false,
+        ...(Object.keys(dateFilter).length > 0 && { date: dateFilter })
+      },
+      orderBy: [
+        { date: includeUpcoming ? 'asc' : 'desc' }
+      ],
+      take: Math.min(limit, 100), // Cap at 100 for performance
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        description: true,
+        date: true,
+        location: true,
+        capacity: true,
+        price: true,
+        sponsor: true,
+        bannerImage: true,
+        thumbImage: true,
+        sponsorLogo: true,
+        publishDate: true
+        // Don't expose admin fields (eventActive, eventPrivate, eventLocked)
+      }
+    });
+
+    return {
+      success: true,
+      data: events,
+      count: events.length
+    };
+
+  } catch (error) {
+    console.error('EventService.getPublicEvents error:', error);
+    
+    return {
+      success: false,
+      message: 'Failed to retrieve events',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+/**
+ * Get single public event by ID
+ * Only returns if event is active, non-private, and not locked
+ */
+async getPublicEventById(eventId: string) {
+  try {
+    // Validate input
+    if (!eventId || typeof eventId !== 'string') {
+      return {
+        success: false,
+        message: 'Valid event ID is required'
+      };
+    }
+
+    const event = await this.prisma.event.findFirst({
+      where: {
+        id: eventId,
+        eventActive: true,
+        eventPrivate: false,
+        eventLocked: false
+      },
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        description: true,
+        date: true,
+        location: true,
+        capacity: true,
+        price: true,
+        sponsor: true,
+        bannerImage: true,
+        thumbImage: true,
+        sponsorLogo: true,
+        publishDate: true
+      }
+    });
+
+    if (!event) {
+      return {
+        success: false,
+        message: 'Event not found or not available'
+      };
+    }
+
+    return {
+      success: true,
+      data: event
+    };
+
+  } catch (error) {
+    console.error('EventService.getPublicEventById error:', error);
+    
+    return {
+      success: false,
+      message: 'Failed to retrieve event',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
 }
