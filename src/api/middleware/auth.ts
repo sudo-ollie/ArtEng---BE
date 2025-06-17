@@ -1,113 +1,158 @@
-import { clerkClient, ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { Request, Response, NextFunction } from 'express';
-import { ErrorCode, ApiError } from '../utils/errorTypes';
+import { getAuth } from '@clerk/express';
+import { clerkClient } from '@clerk/clerk-sdk-node';
+import { ErrorCode } from '../../api/utils/errorTypes';
 import { services } from '../services/container';
 import { AuditLevel } from '../../enums/enumsRepo';
-import { adminLimiter } from './ratelimiter';
 
-const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
-
-if (!CLERK_SECRET_KEY) {
-  throw new Error('CLERK_SECRET_KEY environment variable is required');
-}
-
+// Extend Request with Clerk auth
 export interface AuthRequest extends Request {
   auth: {
     userId: string;
-    sessionId: string;
-    getToken: () => Promise<string>;
-  }
+    sessionId?: string;
+    [key: string]: any;
+  };
 }
 
-export const requireAuth = ClerkExpressRequireAuth({
-  onError: (error: any) => {
-    // Safely call audit logger (it might not be initialized yet)
-    try {
+/**
+ * Middleware to require authentication
+ * Uses the newer @clerk/express getAuth() pattern
+ */
+
+export const requireAuth = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    const auth = getAuth(req);
+    
+    console.log('=== AUTH DEBUG ===');
+    console.log('Auth object:', auth);
+    console.log('UserId:', auth.userId);
+    console.log('SessionId:', auth.sessionId);
+    
+    if (!auth.userId) {
+      console.log('Authentication failed: No userId found');
+      
       services.auditLogger.auditLog(
-        `Authentication failed: ${error.message}`,
+        `Authentication failed - No userId - ${req.method} ${req.originalUrl}`,
         AuditLevel.Error,
         'ANONYMOUS'
       );
-    } catch (auditError) {
-      console.warn('Failed to log audit event:', auditError);
+      
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Authentication required',
+          code: ErrorCode.UNAUTHORIZED
+        }
+      });
+      return;
     }
     
-    throw new ApiError(401, 'Authentication required', ErrorCode.UNAUTHORIZED);
+    (req as AuthRequest).auth = auth;
+    
+    console.log(`Authentication successful for user: ${auth.userId}`);
+    next();
+    
+  } catch (error) {
+    console.error('Authentication middleware error:', error);
+    
+    services.auditLogger.auditLog(
+      `Authentication middleware error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      AuditLevel.Error,
+      'SYSTEM'
+    );
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Authentication error',
+        code: ErrorCode.INTERNAL_ERROR
+      }
+    });
+    return;
   }
-});
-
-export const handleAuthError = (req: Request, res: Response, next: NextFunction) => {
-  const authReq = req as AuthRequest;
-  
-  if (!authReq.auth || !authReq.auth.userId) {
-    throw new ApiError(401, 'Authentication required', ErrorCode.UNAUTHORIZED);
-  }
-  
-  next();
 };
 
-export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
-  const authReq = req as AuthRequest;
-  const { userId } = authReq.auth;
-  
+/**
+ * Middleware to require admin role
+ * Must be used AFTER requireAuth
+ */
+
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const authReq = req as AuthRequest;
+    const { userId } = authReq.auth;
+    
+    if (!userId) {
+      console.error('requireAdmin called without authentication');
+      res.status(401).json({
+        success: false,
+        error: {
+          message: 'Authentication required',
+          code: ErrorCode.UNAUTHORIZED
+        }
+      });
+      return;
+    }
+    
     const user = await clerkClient.users.getUser(userId);
     const userRole = user.publicMetadata?.role as string | undefined;
-
+    
     if (userRole !== 'admin') {
-      // Safely call audit logger
-      try {
-        await services.auditLogger.auditLog(
-          `Unauthorized admin access attempt by user: ${userId}`,
-          AuditLevel.Error,
-          userId
-        );
-      } catch (auditError) {
-        console.warn('Failed to log audit event:', auditError);
-      }
+      console.warn(`SECURITY: Unauthorized admin access attempt by ${user.emailAddresses[0]?.emailAddress}`);
       
-      throw new ApiError(403, 'Admin access required', ErrorCode.FORBIDDEN);
-    }
-
-    if (!user.emailAddresses?.length || !user.emailAddresses[0].emailAddress) {
-      throw new ApiError(403, 'Invalid admin account', ErrorCode.FORBIDDEN);
-    }
-
-    // Safely call audit logger
-    try {
-      await services.auditLogger.auditLog(
-        `Admin access granted to: ${user.emailAddresses[0].emailAddress}`,
-        AuditLevel.System,
-        userId
-      );
-    } catch (auditError) {
-      console.warn('Failed to log audit event:', auditError);
-    }
-    
-    next();
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    
-    console.error('Error checking admin role:', error);
-    
-    // Safely call audit logger
-    try {
-      await services.auditLogger.auditLog(
-        `Admin check error for user: ${userId}`,
+      services.auditLogger.auditLog(
+        `Unauthorized admin access attempt by ${user.emailAddresses[0]?.emailAddress} (${userId}) - Role: ${userRole || 'none'}`,
         AuditLevel.Error,
         userId
       );
-    } catch (auditError) {
-      console.warn('Failed to log audit event:', auditError);
+      
+      res.status(403).json({
+        success: false,
+        error: {
+          message: 'Admin access required',
+          code: ErrorCode.FORBIDDEN
+        },
+        user: {
+          email: user.emailAddresses[0]?.emailAddress,
+          role: userRole || 'user'
+        }
+      });
+      return;
     }
     
-    throw new ApiError(500, 'Internal server error', ErrorCode.INTERNAL_ERROR);
+    (authReq as any).user = {
+      id: user.id,
+      email: user.emailAddresses[0]?.emailAddress,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: userRole
+    };
+    
+    next();
+    
+  } catch (error) {
+    console.error('Admin authorization error:', error);
+    
+    const authReq = req as AuthRequest;
+    services.auditLogger.auditLog(
+      `Admin authorization error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      AuditLevel.Error,
+      authReq.auth?.userId || 'SYSTEM'
+    );
+    
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Authorization error',
+        code: ErrorCode.INTERNAL_ERROR
+      }
+    });
+    return;
   }
 };
 
-// Operation Limiter
-export const adminOperationLimiter = (req: Request, res: Response, next: NextFunction) => {
-  adminLimiter(req, res, next);
-};
+/**
+ * Combined middleware for admin routes
+ * Combines authentication and admin role check
+ */
+export const requireAuthAdmin = [requireAuth, requireAdmin];

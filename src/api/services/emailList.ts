@@ -30,12 +30,6 @@ export class EmailListService {
         },
       });
 
-      await this.auditLogger.auditLog(
-        `${email} - Subscribed To Mailing List`,
-        AuditLevel.Create,
-        "SYSTEM"
-      );
-
       return { success: true, message: "Successfully Added To Mailing List" };
     } catch (error) {
       console.error("Error Adding To Mailing List :", error);

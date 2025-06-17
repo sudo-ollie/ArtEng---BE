@@ -68,7 +68,7 @@ export const EmailListController = {
       const emailAttemptKey = `email_join_${email}`;
 
       await services.auditLogger.auditLog(
-        `Mailing list join attempt for email: ${email} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+        `Mailing list join attempt for email: ${email}`,
         AuditLevel.System,
         'Mailing Service'
       );
@@ -77,7 +77,7 @@ export const EmailListController = {
       
       if (!result.success) {
         await services.auditLogger.auditLog(
-          `Mailing list join failed: ${result.message} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+          `Mailing list join failed: ${result.message}`,
           AuditLevel.Error,
           'Mailing Service'
         );
@@ -86,8 +86,8 @@ export const EmailListController = {
       }
 
       await services.auditLogger.auditLog(
-        `Successfully joined mailing list`,
-        AuditLevel.Create,
+        `${email} - Successfully joined mailing list`,
+        AuditLevel.SignUp,
         'Mailing Service'
       );
       
@@ -101,7 +101,7 @@ export const EmailListController = {
       console.error('Failed Joining Mailing List:', error);
 
       await services.auditLogger.auditLog(
-        `ERROR - JoinMailingList failed: ${error instanceof Error ? error.message : 'Unknown error'} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+        `ERROR - JoinMailingList failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         AuditLevel.Error,
         'Mailing Service'
       );
@@ -119,7 +119,7 @@ export const EmailListController = {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         await services.auditLogger.auditLog(
-          `ERROR - LeaveMailingList validation failed: ${JSON.stringify(errors.array())} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+          `ERROR - LeaveMailingList validation failed: ${JSON.stringify(errors.array())}`,
           AuditLevel.Error,
           'Mailing Service'
         );
@@ -137,7 +137,7 @@ export const EmailListController = {
       const { email } = req.body;
 
       await services.auditLogger.auditLog(
-        `Mailing list leave attempt for email: ${email} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+        `Mailing list leave attempt for email: ${email}`,
         AuditLevel.System,
         'Mailing Service'
       );
@@ -146,7 +146,7 @@ export const EmailListController = {
       
       if (!result.success) {
         await services.auditLogger.auditLog(
-          `Mailing list leave failed: ${result.message} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+          `Mailing list leave failed: ${result.message}`,
           AuditLevel.Error,
           'Mailing Service'
         );
@@ -170,7 +170,7 @@ export const EmailListController = {
       console.error('Error Leaving Mailing List:', error);
 
       await services.auditLogger.auditLog(
-        `ERROR - LeaveMailingList failed: ${error instanceof Error ? error.message : 'Unknown error'} | UA : ${req.get('User-Agent')} | IP : ${req.ip}`,
+        `ERROR - LeaveMailingList failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         AuditLevel.Error,
         'Mailing Service'
       );

@@ -6,65 +6,169 @@ import { AdminEmailListController } from "../api-admin/controllers/emailList.con
 import { AdminEventController } from "../api-admin/controllers/events.controller";
 import { ContentfulController } from "./controllers/contentful.controller";
 import { AdminAuthController } from "./controllers/admin-auth.controller";
-import { createHandler } from '../api/utils/routerTypes';
+import { createHandler } from "../api/utils/routerTypes";
 import { authLimiter } from "../api/middleware/ratelimiter";
 import { requireAuth, requireAdmin } from "../api/middleware/auth";
 
 export function setupAdminApi() {
   const router = Router();
 
-  // =====  PUBLIC ROUTES  =====
-  
-  // Test Endpoint
+  // Test Endpoint (no auth required)
   router.get("/", (req, res) => {
-    services.auditLogger.auditLog("Admin API Live", AuditLevel.System, "Health Check");
+    services.auditLogger.auditLog(
+      "AuditLog Test",
+      AuditLevel.System,
+      "ArtEng-Dev"
+    );
     res.json({
       name: "ArtEng Admin API",
+      version: "1.0.0",
       status: "online",
     });
   });
 
-  // Admin Authentication Routes - these handle their own auth
-  router.post('/auth/verify', authLimiter, AdminAuthController.verifyAdmin);
-  router.get('/auth/session', authLimiter, AdminAuthController.checkSession);
-  router.post('/auth/logout', authLimiter, AdminAuthController.logout);
-
-  // ===== APPLY AUTH MIDDLEWARE TO ALL SUBSEQUENT ROUTES =====
-  // Use type assertion to resolve Express type conflicts
-  router.use(requireAuth as any);
-  
+  // Dev Debugging
   router.use((req, res, next) => {
-    requireAdmin(req as any, res, next).catch(next);
+    console.log("API-ADMIN DEBUGGING:", {
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl,
+      path: req.path,
+      url: req.url,
+      hasAuth: !!req.headers.authorization,
+    });
+    next();
   });
-  
-  // ===== PROTECTED ADMIN ROUTES =====
-  
-  // === AUDIT LOG ENDPOINTS ===
-  router.get('/audit-logs', createHandler(AuditLogController.getAllLogs));
-  router.get('/audit-logs/user/:userId', createHandler(AuditLogController.getLogsByUser));
-  router.get('/audit-logs/paginated', createHandler(AuditLogController.getLogsPaginated));
-  router.get('/audit-logs/user/:userId/paginated', createHandler(AuditLogController.getUserLogsPaginated));
-  router.get('/audit-logs/search', createHandler(AuditLogController.searchLogs));
-  router.get('/audit-logs/date-range', createHandler(AuditLogController.getLogsByDateRange));
-  router.get('/audit-logs/action-type', createHandler(AuditLogController.getLogsByActionType));
-  router.get('/audit-logs/recent', createHandler(AuditLogController.getRecentLogs));
-  router.get('/audit-logs/statistics', createHandler(AuditLogController.getLogStatistics));
-  router.delete('/audit-logs/cleanup', createHandler(AuditLogController.deleteOldLogs));
 
-  // === EMAIL LIST ENDPOINTS ===
-  router.get('/mailing-list', createHandler(AdminEmailListController.getAllMailingList));
-  router.get('/mailing-list/stats', createHandler(AdminEmailListController.getMailingListStats));
-  router.get('/mailing-list/export', createHandler(AdminEmailListController.exportMailingList));
-  
-  // === EVENT ENDPOINTS ===
-  router.delete('/events/:id', createHandler(AdminEventController.deleteEvent));
-  router.put('/events/:id/lock', createHandler(AdminEventController.lockEvent));
-  router.put('/events/:id/private', createHandler(AdminEventController.privateEvent));
-  router.get('/events/stats', createHandler(AdminEventController.getEventStats));
-  
-  // === CONTENTFUL ENDPOINTS ===
-  // router.get('/contentful/sync', createHandler(ContentfulController.syncContent));
-  // router.post('/contentful/webhook', createHandler(ContentfulController.handleWebhook));
+  // Admin Authentication Routes (these handle their own auth internally)
+  router.post("/auth/verify", authLimiter, AdminAuthController.verifyAdmin);
+  router.get("/auth/session", AdminAuthController.checkSession);
+  router.post("/auth/logout", authLimiter, AdminAuthController.logout);
+
+  // PROTECTED ROUTES - All routes below require authentication and admin role
+
+  // Audit log Endpoints
+  router.get(
+    "/audit-logs",
+    requireAuth,
+    requireAdmin,
+    createHandler(AuditLogController.getAllLogs)
+  );
+  router.get(
+    "/audit-logs/user/:userId",
+    requireAuth,
+    requireAdmin,
+    createHandler(AuditLogController.getLogsByUser)
+  );
+
+  // Email list Endpoints
+  router.get(
+    "/mailing-list",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEmailListController.getAllMailingList)
+  );
+  router.get(
+    "/mailing-list/stats",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEmailListController.getMailingListStats)
+  );
+  router.get(
+    "/mailing-list/export",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEmailListController.exportMailingList)
+  );
+
+  // Event Endpoints
+  router.delete(
+    "/events/:id",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEventController.deleteEvent)
+  );
+  router.put(
+    "/events/:id/lock",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEventController.lockEvent)
+  );
+  router.put(
+    "/events/:id/private",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEventController.privateEvent)
+  );
+  router.get(
+    "/events/stats",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEventController.getEventStats)
+  );
+  router.post(
+    "/events/create",
+    requireAuth,
+    requireAdmin,
+    createHandler(AdminEventController.createEvent)
+  );
+
+  // Contentful Endpoints
+  router.get(
+    "/articles",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.getAllArticles)
+  );
+  router.get(
+    "/articles/drafts",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.getAllArticlesIncludingDrafts)
+  );
+  router.get(
+    "/articles/:slug",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.getArticleBySlug)
+  );
+  router.post(
+    "/articles",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.createArticle)
+  );
+  router.put(
+    "/articles/:id",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.updateArticle)
+  );
+  router.post(
+    "/articles/:id/publish",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.publishArticle)
+  );
+  router.post(
+    "/articles/:id/unpublish",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.unpublishArticle)
+  );
+    router.post(
+    '/contentful/upload-image',
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.uploadImage)
+  );
+
+  // Admin Dashboard Data
+  router.get(
+    "/dashboard-data",
+    requireAuth,
+    requireAdmin,
+    AdminAuthController.getDashboardData
+  );
 
   return router;
 }

@@ -1,6 +1,7 @@
-import { Request, Response } from 'express'
 import { ContentfulService } from '../services/contentful-service'
 import { ArticleFields } from '../../types/typesRepo'
+import multer from 'multer';
+import { Request, Response } from 'express';
 
 export class ContentfulController {
   // GET /articles - Get all published articles
@@ -202,4 +203,86 @@ export class ContentfulController {
       })
     }
   }
+
+  static async uploadImage(req: Request, res: Response) {
+  try {
+    const upload = multer({ 
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new Error('Only image files are allowed'), false);
+        }
+      }
+    }).single('file');
+
+    // Handle the upload
+    upload(req, res, async (err) => {
+      if (err) {
+        console.error('Multer error:', err);
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'File upload error'
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file provided'
+        });
+      }
+
+      const { title, description } = req.body;
+
+      if (!title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Title is required'
+        });
+      }
+
+      try {
+
+        const uploadedAsset = await ContentfulService.uploadImage({
+          file: req.file,
+          title,
+          description: description || ''
+        });
+
+        res.status(201).json({
+          success: true,
+          message: 'Image uploaded successfully',
+          data: {
+            id: uploadedAsset.sys.id,
+            url: `https:${uploadedAsset.fields.file['en-US'].url}`,
+            title: uploadedAsset.fields.title['en-US'],
+            description: uploadedAsset.fields.description ? uploadedAsset.fields.description['en-US'] : '',
+            contentType: uploadedAsset.fields.file['en-US'].contentType,
+            fileName: uploadedAsset.fields.file['en-US'].fileName,
+            size: uploadedAsset.fields.file['en-US'].details.size
+          }
+        });
+      } catch (uploadError) {
+        console.error('Contentful upload error:', uploadError);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to upload image to Contentful',
+          error: uploadError instanceof Error ? uploadError.message : 'Unknown error'
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Upload endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
 }

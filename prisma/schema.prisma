@@ -13,13 +13,8 @@ model AuditLog {
   logMessage String   @map("log_message")
   actionType Int      @map("action_type")
   account    String
-  context    Json?    @map("audit_context")
-  hash       String?  @map("integrity_hash")
-  
+
   @@map("audit_log")
-  @@index([account])
-  @@index([logDT])
-  @@index([actionType])
 }
 
 model Event {
