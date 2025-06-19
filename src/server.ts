@@ -14,6 +14,10 @@ export async function startServer() {
   const app = express();
   const port = parseInt(process.env.PORT || "3000", 10);
 
+  if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   if (!process.env.CLERK_SECRET_KEY) {
     console.error("ERROR: CLERK_SECRET_KEY environment variable is required");
     process.exit(1);
