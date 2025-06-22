@@ -46,7 +46,7 @@ export function setupAdminApi() {
 
   // PROTECTED ROUTES - All routes below require authentication and admin role
 
-  // Audit log Endpoints
+  // #region Audit Log Endpoints
   router.get(
     "/audit-logs",
     requireAuth,
@@ -79,6 +79,10 @@ export function setupAdminApi() {
     requireAdmin,
     createHandler(AdminEmailListController.exportMailingList)
   );
+
+  //#endregion
+
+  // #region Event Endpoints
 
   // Event Endpoints
   router.get(
@@ -124,7 +128,10 @@ export function setupAdminApi() {
     createHandler(AdminEventController.createEvent)
   );
 
-  // Contentful Endpoints
+  // #endregion
+
+  // #region Contenful Endpoints
+
   router.get(
     "/articles",
     requireAuth,
@@ -149,6 +156,12 @@ export function setupAdminApi() {
     requireAdmin,
     createHandler(ContentfulController.createArticle)
   );
+  router.get(
+    "/articles/:id",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.getArticleById)
+  ),
   router.put(
     "/articles/:id",
     requireAuth,
@@ -174,13 +187,17 @@ export function setupAdminApi() {
     ContentfulController.uploadImage
   );
 
-  // Admin Dashboard Data
+  // #endregion
+
+  // #region Admin Dashboard Data
   router.get(
     "/dashboard-data",
     requireAuth,
     requireAdmin,
     AdminAuthController.getDashboardData
   );
+
+  // #endregion
 
   return router;
 }

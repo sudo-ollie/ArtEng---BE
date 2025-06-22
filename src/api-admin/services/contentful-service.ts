@@ -36,6 +36,77 @@ export class ContentfulService {
     }
   }
 
+  // Get single article by ID
+static async getArticleById(articleId: string): Promise<Article | null> {
+  try {
+    const response = await contentfulClient.getEntry(articleId);
+
+    if (!response || response.sys.contentType.sys.id !== "demoArticle") {
+      return null;
+    }
+
+    let article = response as any;
+
+    // Process the rich text content (same logic as getArticleBySlug)
+    if (article.fields.content) {
+      const content = article.fields.content;
+      if (content.content?.[0]?.content?.[0]?.value) {
+        const textValue = content.content[0].content[0].value;
+
+        // If it contains markdown-style formatting, convert it
+        if (textValue.includes("###") || textValue.includes("**")) {
+          try {
+            // Convert markdown to proper Contentful rich text
+            const convertedContent = await richTextFromMarkdown(textValue);
+            article.fields.content = convertedContent;
+            console.log("Successfully converted markdown to rich text");
+            console.log(article.fields.content);
+          } catch (error) {
+            console.error("Failed to convert markdown to rich text:", error);
+            // If conversion fails, create a simple fallback structure
+            article.fields.content = {
+              nodeType: "document",
+              data: {},
+              content: [
+                {
+                  nodeType: "paragraph",
+                  data: {},
+                  content: [
+                    {
+                      nodeType: "text",
+                      value: textValue,
+                      marks: [],
+                      data: {},
+                    },
+                  ],
+                },
+              ],
+            };
+          }
+        }
+      }
+    }
+
+    // Handle featured image resolution (same logic as getArticleBySlug)
+    if (article.fields.featuredImage?.sys?.linkType === "Asset") {
+      try {
+        const asset = await contentfulClient.getAsset(
+          article.fields.featuredImage.sys.id
+        );
+        article.fields.featuredImage = asset;
+      } catch (assetError) {
+        console.warn("Failed to fetch featured image:", assetError);
+        article.fields.featuredImage = null;
+      }
+    }
+
+    return article as Article;
+  } catch (error) {
+    console.error("Error fetching article by ID:", error);
+      return null;
+  }
+}
+
   // Get single article by slug
   static async getArticleBySlug(slug: string): Promise<Article | null> {
     try {
