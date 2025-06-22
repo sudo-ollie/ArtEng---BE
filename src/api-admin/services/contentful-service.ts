@@ -40,7 +40,7 @@ export class ContentfulService {
 static async getArticleById(articleId: string): Promise<Article | null> {
   try {
     const response = await contentfulClient.getEntry(articleId);
-
+    console.log("Entered Get By ID Service")
     if (!response || response.sys.contentType.sys.id !== "demoArticle") {
       return null;
     }
@@ -99,6 +99,7 @@ static async getArticleById(articleId: string): Promise<Article | null> {
         article.fields.featuredImage = null;
       }
     }
+    console.log(article)
 
     return article as Article;
   } catch (error) {

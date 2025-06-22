@@ -144,6 +144,12 @@ export function setupAdminApi() {
     requireAdmin,
     createHandler(ContentfulController.getAllArticlesIncludingDrafts)
   );
+    router.get(
+    "/articles/:id",
+    requireAuth,
+    requireAdmin,
+    createHandler(ContentfulController.getArticleById)
+  ),
   router.get(
     "/articles/:slug",
     requireAuth,
@@ -156,12 +162,6 @@ export function setupAdminApi() {
     requireAdmin,
     createHandler(ContentfulController.createArticle)
   );
-  router.get(
-    "/articles/:id",
-    requireAuth,
-    requireAdmin,
-    createHandler(ContentfulController.getArticleById)
-  ),
   router.put(
     "/articles/:id",
     requireAuth,

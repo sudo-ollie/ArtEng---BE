@@ -33,7 +33,7 @@ export class ContentfulController {
         message: "Article ID is required",
       });
     }
-
+    console.log("Get Article By ID Called")
     const article = await ContentfulService.getArticleById(id);
     
     if (article == null) {
